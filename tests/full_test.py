@@ -49,7 +49,7 @@ async def main():
         print('after edits',d2)
         await page.screenshot(path='/home/claude/test/a_tab_edit.png')
         # check one, range=chk, quiz
-        await page.click('.dmit >> nth=0 >> input'); await page.wait_for_timeout(300)
+        await page.evaluate("dmToggle([items('dumunja').slice().sort((a,b)=>dmOrd(a)-dmOrd(b))[0].id],true);renderTree()"); await page.wait_for_timeout(300)  # 체크 칸은 편에만 있어서 한 개만 고를 때는 직접 지정
         print('sel',await page.evaluate("U.dmSel"))
         await page.click('.dmctl >> text=체크한 것'); await page.wait_for_timeout(300)
         await page.click('.dmctl >> text=퀴즈 시작'); await page.wait_for_timeout(600)

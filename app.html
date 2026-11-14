@@ -57,13 +57,16 @@ button.dml{cursor:pointer}
 .dmctl .r{display:flex;align-items:center;gap:6px;flex-wrap:wrap}.dmctl .k{font-size:12px;color:var(--ink-3);width:28px}
 .dmctl .seg button{padding:4px 8px;font-size:12px}
 .chip[aria-pressed="true"]{border-color:#0a74c8;color:#0a74c8}
-.dmg1{font-weight:700;font-size:13px;margin:10px 0 2px;color:var(--ink)}
-.dmg2{display:flex;gap:6px;align-items:center;font-weight:600;font-size:13px;margin:8px 0 2px;color:var(--ink)}
-.dmg2 .n{margin-left:auto;font-size:11px;color:var(--ink-3);font-weight:400}
-.dmg3{font-size:12px;color:var(--ink-2);margin:4px 0 2px 24px}
-.dmit{display:flex;gap:6px;align-items:center;padding:5px 4px 5px 22px;border-radius:6px;cursor:pointer;color:var(--ink)}
-.dmit:hover,.dmit.on{background:var(--well)}
-.dmit .lt{flex:1;font-size:15px;letter-spacing:.5px}.dmit .pg{font-size:11px;color:var(--ink-3)}
+.dmg1{display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:700;font-size:14px;margin:14px 0 4px;padding:6px 6px;color:var(--ink);background:var(--well);border-radius:8px}
+.dmg1 .tt{flex:1}.dmg1 .n{font-size:11px;color:var(--ink-3);font-weight:400}
+.dmg1 input{width:18px;height:18px;flex:none}
+.dmg2{display:flex;gap:6px;align-items:baseline;font-weight:400;font-size:11.5px;margin:10px 0 1px 6px;color:var(--ink-3)}
+.dmg2 .n{margin-left:auto;font-size:11px;color:var(--ink-3)}
+.dmg3{font-size:11.5px;color:var(--ink-3);margin:6px 0 1px 14px}
+.dmit{display:flex;gap:8px;align-items:center;margin:3px 0 3px 12px;padding:7px 8px 7px 10px;border-radius:8px;cursor:pointer;color:var(--ink);background:rgba(56,168,255,.13);border-left:3px solid #38a8ff}
+.dmit:hover,.dmit.on{background:rgba(56,168,255,.24)}
+.dmit .lt{flex:1;font-size:17px;font-weight:700;letter-spacing:2px;color:#0a5fa8}.dmit .pg{font-size:11px;color:var(--ink-3)}
+[data-theme="dark"] .dmit .lt{color:#8fd3ff}
 .dmx{margin:2px 0 8px 22px;border:1px solid var(--line);border-radius:8px;padding:8px;display:grid;gap:8px;background:var(--panel);color:var(--ink)}
 .dmx .cue{display:flex;flex-wrap:wrap;gap:6px;align-items:center}.dmx .cue .lab{font-size:12px;color:var(--ink-3)}
 .dmxr{display:grid;gap:4px}.dmxr .h{display:flex;align-items:center;gap:6px}.dmxr .idx{width:16px;color:var(--ink-3);font-size:12px}.dmxr .sp{flex:1}.dmxr .note{font-size:11px;color:var(--ink-3)}
@@ -1097,14 +1100,14 @@ function renderDmTab(){
   const hideT=s=>s.replace(/[^\s]/g,'＿').slice(0,14);
   for(const g1 of dmGroups(ds)){
     if(g1.h){const pids=g1.ch.flatMap(g=>g.tp.flatMap(x=>x.ds.map(d=>d.id)));
-      t.append(el('label',{class:'dmg1',style:'display:flex;align-items:center;gap:6px;cursor:pointer'},cb(pids,'편 전체 체크'),el('span',{style:'flex:1'},g1.h.t),el('span',{class:'n',style:'font-weight:400;opacity:.7'},String(pids.length))))}
+      t.append(el('label',{class:'dmg1'},cb(pids,'편 전체 체크'),el('span',{class:'tt'},g1.h.t),el('span',{class:'n'},String(pids.length))))}
     for(const g2 of g1.ch){const ids=g2.tp.flatMap(x=>x.ds.map(d=>d.id));
-      t.append(el('label',{class:'dmg2'},cb(ids,'장 전체 체크'),el('span',{},g2.h?g2.h.t:'(장 없음)'),el('span',{class:'n'},String(ids.length))));
-      for(const g3 of g2.tp){t.append(el('div',{class:'dmg3'},DMV.hideC?hideT(g3.t):g3.t));
+      t.append(el('div',{class:'dmg2'},el('span',{},g2.h?g2.h.t:'(장 없음)'),el('span',{class:'n'},String(ids.length))));
+      for(const g3 of g2.tp){if(g3.t!=='(주제 없음)')t.append(el('div',{class:'dmg3'},DMV.hideC?hideT(g3.t):g3.t));
         for(const d of g3.ds){const T=dmT(d);const op=DMV.open.has(d.id);
           const lt=DMV.hideL?T.map(()=>'○').join(' '):T.map(x=>dmChar(x)||'□').join(' ');
           const row=el('div',{class:'dmit'+(op?' on':''),onclick:()=>{op?DMV.open.delete(d.id):DMV.open.add(d.id);renderTree()}},
-            cb([d.id],'이 두문자 체크'),el('span',{class:'lt'},lt),el('span',{class:'pg'},pageLabel(T[0].p)),
+            el('span',{class:'lt'},lt),el('span',{class:'pg'},pageLabel(T[0].p)),
             Q.order==='here'?el('button',{class:'chip',onclick:e=>{e.stopPropagation();startDeck(dmQuizList(d.id),Q.dir,{keep:true})}},'▶여기서'):null);
           t.append(row);if(op)t.append(dmDetail(d))}}}}
 }
