@@ -45,6 +45,7 @@ button:disabled{opacity:.45;cursor:default}
     <h2>교재 <span class="st" id="ctSt">확인 중</span></h2>
     <div id="ctRows"></div>
     <p class="note">교재 묶음(zip)은 처음 한 번만 넣으면 됩니다. 드라이브가 연결돼 있으면 드라이브에도 올라가서, 기기를 바꾸거나 저장공간이 비워져도 다시 받을 수 있습니다.</p>
+    <button id="zipBtn" style="margin-top:8px">묶음 파일 넣기 (교재·기록 zip)</button>
     <input type="file" id="zipIn" accept=".zip,application/zip" hidden>
     <div class="prog" id="prog" hidden><i></i></div>
   </div>
@@ -160,6 +161,7 @@ async function fromDrive(r, f, btn){
   await refreshAll();
 }
 
+$('#zipBtn').addEventListener('click', () => $('#zipIn').click());
 $('#zipIn').addEventListener('change', async e => {
   const f = e.target.files[0]; e.target.value = ''; if(!f) return;
   log(f.name + ' 여는 중…'); busy = true; $('#go').disabled = true;
