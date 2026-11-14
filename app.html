@@ -1230,7 +1230,7 @@ function ensureCanvas(i){
   c.addEventListener('pointerdown',ev=>{
     if(!has('pen')&&!MKB)return;
     if(ev.pointerType==='pen')sawPen=true;
-    if(ev.pointerType==='touch'){// 손가락은 긋지 않고 화면만 넘김
+    if(ev.pointerType==='touch'||MKB==='dm'){// 손가락은 긋지 않고 화면만 넘김 (두문자 만들기 중에는 펜·마우스도 끌면 넘김, 톡은 글자 선택)
       ev.preventDefault();if(pan)return;c.setPointerCapture(ev.pointerId);stopFling();pan={id:ev.pointerId,x:ev.clientX,y:ev.clientY,x0:ev.clientX,y0:ev.clientY,t0:performance.now(),t:performance.now(),vx:0,vy:0};
       if(MKB){const bb=c.getBoundingClientRect();const pt=[(ev.clientX-bb.left)/bb.width,(ev.clientY-bb.top)/bb.height];const pp=pan;pan.lp=setTimeout(()=>{if(pan===pp&&Math.hypot(pp.x-pp.x0,pp.y-pp.y0)<10){pp.done=true;mkChar(i,pt)}},450)}return}
     ev.preventDefault();c.setPointerCapture(ev.pointerId);const b=c.getBoundingClientRect();const pt=[(ev.clientX-b.left)/b.width,(ev.clientY-b.top)/b.height];
