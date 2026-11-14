@@ -1,8 +1,8 @@
-<!doctype html><html><head><meta charset=utf8><meta name="color-scheme" content="light dark"><script>document.documentElement.dataset.theme='light'</script><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light dark;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<!doctype html><html><head><meta charset=utf8><meta name="color-scheme" content="light dark"><script>document.documentElement.dataset.theme='dark'</script><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light dark;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
 <title>인사노무관리론 회독</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
-<meta name="theme-color" content="#f3f4f6">
+<meta name="theme-color" content="#1c2028">
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600&display=swap">
@@ -1344,7 +1344,7 @@ $('#tabToc').addEventListener('click',()=>setSide('toc'));$('#tabSc').addEventLi
 $('#kwBtn').addEventListener('click',e=>{U.kw=!U.kw;e.currentTarget.setAttribute('aria-pressed',String(U.kw));saveU();renderAll()});
 $('#wrongBtn').addEventListener('click',openWrong);$('#quizBtn').addEventListener('click',()=>openQuiz());
 $('#qsBtn').addEventListener('click',e=>{U.qs=!(U.qs!==false);e.currentTarget.setAttribute('aria-pressed',String(U.qs));saveU();renderAll()});$('#finalBtn').addEventListener('click',openFinal);
-function applyEye(){const v=U.eye||'';try{if(v==='night')document.documentElement.dataset.theme='dark';else if(document.documentElement.dataset.theme==='dark'&&document.documentElement.dataset.eyeSet)document.documentElement.dataset.theme='light';document.documentElement.dataset.eyeSet=v==='night'?'1':''}catch(e){}document.body.classList.toggle('eye-paper',v==='paper');document.body.classList.toggle('eye-night',v==='night');$$('#eyeSeg button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.eye===v)))}
+function applyEye(){const v=U.eye||'';try{if(v==='night')document.documentElement.dataset.theme='dark';else if(document.documentElement.dataset.theme==='dark'&&document.documentElement.dataset.eyeSet)document.documentElement.dataset.theme='dark';document.documentElement.dataset.eyeSet=v==='night'?'1':''}catch(e){}document.body.classList.toggle('eye-paper',v==='paper');document.body.classList.toggle('eye-night',v==='night');$$('#eyeSeg button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.eye===v)))}
 $$('#eyeSeg button').forEach(b=>b.addEventListener('click',()=>{U.eye=b.dataset.eye;applyEye();saveU()}));
 function applyMenu(){const off=U.menu===false;document.body.classList.toggle('menuoff',off);$('#menuOpen').hidden=!off;$('#menuOpen').textContent='▲ 메뉴 · '+(mode==='review'?'검수·편집':ON.size?[...ON].map(k=>({blank:'빈칸',quiz:'두문자',recall:'목차 인출',memo:'메모',pen:'펜'}[k])).join('+'):'읽기')}
 $('#menuClose').addEventListener('click',()=>{U.menu=false;applyMenu();saveU();setTimeout(()=>applyLayout(true),0)});

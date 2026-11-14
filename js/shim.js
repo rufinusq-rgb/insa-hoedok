@@ -10,7 +10,7 @@ let dirty = false, timer = null, pushing = false, lastOk = 0, lastErr = '', shri
 const pill = document.createElement('button');
 pill.id = 'cloudPill'; pill.type = 'button';
 pill.style.cssText = 'position:fixed;left:8px;bottom:calc(8px + env(safe-area-inset-bottom,0px));z-index:99999;font:12px/1.2 system-ui,sans-serif;' +
-  'padding:5px 9px;border-radius:14px;border:1px solid #c9ced8;background:#fff;color:#4a5466;box-shadow:0 2px 8px rgba(0,0,0,.12);opacity:.92';
+  'padding:5px 9px;border-radius:14px;border:1px solid #2e3440;background:#1c2028;color:#b4bbc8;box-shadow:0 2px 8px rgba(0,0,0,.4);opacity:.92';
 function hhmm(t){ const d = new Date(t); return String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0'); }
 function paint(){
   let txt, warn = false;
@@ -23,8 +23,9 @@ function paint(){
   else if(lastOk) txt = '☁ 드라이브 저장됨 ' + hhmm(lastOk);
   else txt = '☁ 드라이브 연결됨';
   pill.textContent = txt;
-  pill.style.borderColor = warn ? '#e0a14a' : '#c9ced8';
-  pill.style.background = warn ? '#fff4e2' : '#fff';
+  pill.style.borderColor = warn ? '#b8782a' : '#2e3440';
+  pill.style.background = warn ? '#3a2a14' : '#1c2028';
+  pill.style.color = warn ? '#f0c080' : '#b4bbc8';
 }
 async function push(opt){
   if(pushing || !Drive.configured()) { paint(); return; }
