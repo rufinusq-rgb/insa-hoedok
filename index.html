@@ -65,7 +65,7 @@ button:disabled{opacity:.45;cursor:default}
 const {CFG, Local, Content, Drive, Sync, lastWrite} = INSA;
 const $ = s => document.querySelector(s);
 const log = t => { $('#log').textContent += t + '\n'; };
-let pendingBackup = null;
+let pendingBackup = null, busy = false;
 
 if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(e => log('오프라인 준비 실패: ' + e.message));
 if(navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(()=>{});
@@ -137,7 +137,7 @@ async function refreshRec(){
 async function refreshAll(){
   document.querySelectorAll('.pb').forEach(e => e.remove());
   const d = await refreshDrive(); const c = await refreshContent(); await refreshRec();
-  const go = $('#go'); go.disabled = !c;
+  const go = $('#go'); go.disabled = !c || busy;
   $('#goNote').textContent = !c ? '교재를 먼저 넣어 주세요.' : (Drive.configured() && !d ? '드라이브를 연결하지 않고 열면 기록은 이 기기에만 저장되고, 나중에 연결하면 그때 올라갑니다.' : '');
   return {d, c};
 }
@@ -162,15 +162,17 @@ async function fromDrive(r, f, btn){
 
 $('#zipIn').addEventListener('change', async e => {
   const f = e.target.files[0]; e.target.value = ''; if(!f) return;
-  log(f.name + ' 여는 중…');
+  log(f.name + ' 여는 중…'); busy = true; $('#go').disabled = true;
   try{
     const res = await Content.importZip(f, (a, b) => prog(a, b)); prog(0, 0);
     log('교재 넣기 완료: ' + res.rounds.join(', '));
     if(res.backup) pendingBackup = res.backup;
-    for(const rk of res.rounds){ const r = CFG.ROUNDS.find(x => x.key === rk); if(!r) continue;
-      if(Drive.token()) await uploadPkg(r, f); else r._blob = f; }
+    for(const rk of res.rounds){ const r = CFG.ROUNDS.find(x => x.key === rk); if(r) r._blob = f; }
+    busy = false; await refreshAll();   // 기록 넣기 버튼을 먼저 보여 준다
+    for(const rk of res.rounds){ const r = CFG.ROUNDS.find(x => x.key === rk);
+      if(r && Drive.token()){ await uploadPkg(r, f); delete r._blob; } }
   }catch(err){ log('넣지 못함: ' + err.message); }
-  await refreshAll();
+  busy = false; await refreshAll();
 });
 
 $('#drBtn').addEventListener('click', async () => {
@@ -188,6 +190,7 @@ async function afterConnect(){
 }
 
 $('#go').addEventListener('click', async () => {
+  if(pendingBackup && !confirm('묶음 속 기록(빈칸)을 아직 넣지 않았습니다. 넣지 않고 열까요?\n(「내 기록」 칸의 「이 기록 넣기」를 먼저 누르는 것을 권합니다)')) return;
   if(Drive.configured() && !Drive.token()){
     if(confirm('드라이브를 연결하고 열까요?\n(취소를 누르면 연결 없이 엽니다)')){
       try{ await Drive.connect(); await afterConnect(); }catch(e){ log('연결 실패: ' + e.message); }
