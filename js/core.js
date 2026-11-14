@@ -8,7 +8,8 @@ const CFG = {
   FOLDER: '인사 회독 앱',
   // 편(회차) 목록. 새 편을 넣으면 여기에 덧붙인다. file = 드라이브에 올라갈 교재 묶음 이름
   ROUNDS: [
-    {key:'r01', title:'제1편', file:'교재_r01.zip'}
+    {key:'r01', title:'제1편', file:'교재_r01.zip'},
+    {key:'r02', title:'제2편', file:'교재_r02.zip'}
   ],
   CONTENT_CACHE: 'insa-content-v1'
 };

@@ -29,6 +29,7 @@
   --accent:#e0606f; --accent-soft:#3a1f24; --accent-ink:#1a0d10; --ok:#5cc28d; --ok-soft:#173326; --ng:#ef7a70; --ng-soft:#3a1d1b; --warn:#f0a050; --warn-soft:#3a2a14;
   --shadow:0 6px 24px rgba(0,0,0,.5); color-scheme:dark}
 [hidden]{display:none!important}
+.scp{margin:14px 6px 2px;padding:4px 8px;font-size:14px;font-weight:700;background:var(--bg-2,rgba(127,127,127,.16));border-radius:6px}
 .scg{margin:10px 6px 4px;border-left:3px solid #4fb06c;padding:2px 0 2px 8px}
 .scg b{font-size:15px}.scg span{font-size:12px;color:var(--ink-3);margin-left:6px}
 #side.sc #cur,#side.sc #legend{display:none!important}
@@ -619,7 +620,7 @@ function renderPage(i){
   // 쪽지 답 범위
   if(U.qs!==false&&!R&&D.qspans){const qsUsed={};for(const sp of D.qspans){if(sp.p!==i||(typeof BQ==='number'&&BQ&&sp.q!==BQ)||BQ==='mine')continue;const x=.035;
     ov.append(el('div',{class:'qsp',style:`left:${pct(x)};top:${pct(sp.y)};height:${pct(sp.h)}`}));
-    ov.append(el('span',{class:'qsl',style:`left:${pct(x)};top:${pct(sp.y+.024)}`,title:'쪽지 '+sp.q+'번 문제 보기',onclick:ev=>{ev.stopPropagation();openQuiz(sp.q)}},'Q'+sp.q))}}
+    ov.append(el('span',{class:'qsl',style:`left:${pct(x)};top:${pct(sp.y+.024)}`,title:'쪽지 '+qLbl(sp.q)+' 문제 보기',onclick:ev=>{ev.stopPropagation();openQuiz(sp.q)}},'Q'+qNo(sp.q)))}}
   // 메모
   const N=NOTES['p'+i];
   if(N)for(const m of N.memos)ov.append(memoEl(i,m));
@@ -909,7 +910,8 @@ function renderScholars(){const t=$('#tree');t.textContent='';const G=D.scholars
   if(!G.length){t.append(el('div',{class:'empty'},'학자 정리가 아직 없습니다'));return}
   const seg=el('div',{class:'seg',style:'margin:2px 6px 6px'},...[['all','다 보기'],['n','학자 가리기'],['t','이론 가리기']].map(([k,l])=>el('button',{'aria-pressed':String(SCH===k),onclick:()=>{SCH=k;SCH_OPEN.clear();renderScholars()}},l)));
   t.append(seg);
-  G.forEach((g,gi)=>{t.append(el('div',{class:'scg'},el('b',{},g.g),g.s?el('span',{},g.s):''));
+  G.forEach((g,gi)=>{if(g.part&&(gi===0||G[gi-1].part!==g.part))t.append(el('div',{class:'scp'},g.part));
+    t.append(el('div',{class:'scg'},el('b',{},g.g),g.s?el('span',{},g.s):''));
     g.items.forEach((it,ii)=>{const id=gi+'-'+ii;const op=SCH_OPEN.has(id);
       const cover=txt=>el('span',{class:'cv',onclick:()=>{SCH_OPEN.add(id);renderScholars()}},'?');
       t.append(el('div',{class:'sci'},
@@ -1148,7 +1150,7 @@ function openWrong(){
 function openFinal(){
   const body=el('div',{class:'sb'});
   sheet('시험 직전 모아보기',body);
-  if(D.quiz){const weak=D.quiz.items.filter(it=>{const r=U.qres[it.key];return !r||r.last!=='o'});body.append(el('h3',{style:'margin:0;font-size:14px'},'쪽지시험: 아직 ○가 아닌 문항 '+weak.length+'개'));body.append(el('div',{class:'qrow'},...weak.map(it=>el('button',{class:'chip',onclick:()=>openQuiz(it.q)},it.q+'번 '+(U.qres[it.key]?({s:'△',x:'✕'})[U.qres[it.key].last]:'안 풂')))))}
+  if(D.quiz){const weak=D.quiz.items.filter(it=>{const r=U.qres[it.key];return !r||r.last!=='o'});body.append(el('h3',{style:'margin:0;font-size:14px'},'쪽지시험: 아직 ○가 아닌 문항 '+weak.length+'개'));body.append(el('div',{class:'qrow'},...weak.map(it=>el('button',{class:'chip',onclick:()=>openQuiz(it.q)},qLbl(it.q)+' '+(U.qres[it.key]?({s:'△',x:'✕'})[U.qres[it.key].last]:'안 풂')))))}
   const ds=items('dumunja');
   body.append(el('h3',{style:'margin:0;font-size:14px'},'두문자 '+ds.length+'개'));
   if(!ds.length)body.append(el('p',{},'이 회차에는 아직 두문자가 없습니다. 검수·편집 → "두문자 추가"로 넣을 수 있습니다.'));
@@ -1235,7 +1237,7 @@ $('#viewer').addEventListener('dblclick',e=>{if(LASTPT==='touch'||e.target.close
 
 /* ---------- 내 빈칸 만들기 ---------- */
 let MKB=false,WORDS=null;const MKU=[];
-let WLOAD=null,WDONE=false;function loadWords(){return WLOAD||(WLOAD=(async()=>{WORDS={};const R0=ROUNDS;let off=0;
+let WLOAD=null,WDONE=false;function loadWords(){return WLOAD||(WLOAD=(async()=>{WORDS={};const R0=D.rounds.map(r=>r.key);let off=0;
   for(let k=0;k<R0.length;k++){try{const w=await fetch('data/'+R0[k]+'_words.json').then(x=>x.json());for(const [p,ws] of Object.entries(w))WORDS[+p+off]=ws}catch(e){}
     off+=D.rounds[k].n}WDONE=true;return WORDS})())}
 function setMK(on){if(MKB==='dm'&&on!=='dm')dmFinish();MKB=on;$('#dmBtn').setAttribute('aria-pressed',String(on==='dm'));if(on==='dm'){DMB={t:[]};$('#dmBtn').textContent='완료 (0글자)'}else $('#dmBtn').textContent='＋두문자';$('#mkBtn').setAttribute('aria-pressed',String(on==='mine'));$('#ckBtn').setAttribute('aria-pressed',String(on==='core'));if(on==='dm'){loadWords();toast('두문자 만들기: 두문자 글자를 순서대로 하나씩 톡. 다 골랐으면 「완료」를 누르세요. 만든 두문자 글자를 톡 하면 그 두문자를 지웁니다.',5000)}else if(on){loadWords();const nm=on==='core'?'핵심 빈칸(보라)':'내 빈칸(분홍)';toast(nm+' 만들기: 단어 톡 = 단어, 길게 누르기 = 한 글자, 펜으로 끌기 = 원하는 만큼. 같은 종류 빈칸을 다시 치면 삭제. 다 했으면 버튼을 다시 누르세요.',4500)}
@@ -1322,6 +1324,9 @@ function dmFinish(){const B=DMB;DMB=null;if(!B)return;if(B.edit){dmSaveEdit(B);r
 
 /* ---------- 쪽지시험 ---------- */
 let BQ=0;
+function qIt(q){return D.quiz?D.quiz.items.find(x=>x.q===q):null}
+function qNo(q){const it=qIt(q);return it&&it.no!=null?it.no:q}
+function qLbl(q){const it=qIt(q);return (it&&D.rounds.length>1?it.part+' ':'')+qNo(q)+'번'}
 function inBQ(b){return !BQ||(BQ==='mine'?!!b.mine:BQ==='quiz'?!b.mine:b.q===BQ)}
 function qImg(it,part,k){const x=it[part][k];const r=x.r;const ar=(r[2]*595)/(r[3]*841);const src=it.dir+x.img;
   return el('div',{class:'qimg',style:`aspect-ratio:${ar};background-image:url("${src}");background-size:${100/r[2]}% auto;background-position:${r[0]/(1-r[2])*100}% ${r[3]>=1?0:(r[1]/(1-r[3])*100)}%`})}
@@ -1334,7 +1339,8 @@ function openQuiz(q){
   if(q){quizCard(body,its.findIndex(it=>it.q===q));return}
   body.append(el('p',{},'문제를 보고 답을 떠올린 뒤(말로 해도, 종이에 써도 됨) 「답 보기」로 해설 원본과 맞춰 봅니다. ○ 다 맞음 · △ 뼈대는 맞고 일부 빠짐 · ✕ 못 떠올림'));
   its.forEach((it,k)=>{const nb=items('blanks').filter(b=>b.q===it.q).length;
-    body.append(el('div',{class:'qc'},el('div',{class:'qrow'},el('span',{class:'num'},it.q+'번'),el('span',{class:'qbadge'},it.type),qBadge(it),el('span',{class:'sp',style:'flex:1'}),
+    if(D.rounds.length>1&&(k===0||its[k-1].part!==it.part))body.append(el('h3',{style:'margin:10px 0 0;font-size:15px'},it.part+(it.qt?' · '+it.qt:'')));
+    body.append(el('div',{class:'qc'},el('div',{class:'qrow'},el('span',{class:'num'},qNo(it.q)+'번'),el('span',{class:'qbadge'},it.type),qBadge(it),el('span',{class:'sp',style:'flex:1'}),
       el('button',{class:'tb primary',onclick:()=>{body.textContent='';quizCard(body,k)}},'풀기')),qImg(it,'ask',0),
       nb?el('div',{style:'font-size:12px;color:var(--ink-3)'},'교재 빈칸 '+nb+'개'):null))});
 }
@@ -1348,10 +1354,10 @@ function quizCard(body,k){
   const jbar=el('div',{class:'acts qj',hidden:true},el('button',{class:'o',onclick:()=>judgeQ('o')},'○'),el('button',{onclick:()=>judgeQ('s'),style:'color:var(--warn)'},'△'),el('button',{class:'x',onclick:()=>judgeQ('x')},'✕'),
     el('span',{style:'font-size:12px;color:var(--ink-3)'},'누르면 다음 문항으로'));
   const show=el('button',{class:'tb primary',onclick:()=>{ans.hidden=false;jbar.hidden=false;show.hidden=true}},'답 보기');
-  body.append(el('div',{class:'qrow'},el('button',{class:'chip',onclick:()=>openQuiz()},'← 문항 목록'),el('b',{},it.q+'번'),el('span',{class:'qbadge'},it.type),qBadge(it),el('span',{style:'flex:1'}),
+  body.append(el('div',{class:'qrow'},el('button',{class:'chip',onclick:()=>openQuiz()},'← 문항 목록'),el('b',{},qLbl(it.q)),el('span',{class:'qbadge'},it.type),qBadge(it),el('span',{style:'flex:1'}),
       k>0?el('button',{class:'chip',onclick:()=>quizCard(body,k-1)},'◀ 이전'):null,k+1<its.length?el('button',{class:'chip',onclick:()=>quizCard(body,k+1)},'다음 ▶'):null),
     qImg(it,'ask',0),show,ans,jbar,
-    el('div',{class:'qrow',style:'font-size:12px'},el('span',{style:'color:var(--ink-3)'},'교재에서 보기:'),...spans.map(sp=>el('button',{class:'chip',onclick:()=>go(sp)},pageLabel(sp.p))),
+    el('div',{class:'qrow',style:'font-size:12px'},el('span',{style:'color:var(--ink-3)'},spans.length?'교재에서 보기:':'지금 넣은 교재 범위에는 이 문항의 답이 없습니다(해설만 보기).'),...spans.map(sp=>el('button',{class:'chip',onclick:()=>go(sp)},pageLabel(sp.p))),
       nb.length?el('button',{class:'chip',onclick:()=>{$('#sheet').hidden=true;BQ=it.q;if(!has('blank'))setMode('blank');else{renderAll();updateSub()}jumpTo(nb[0].p,Math.max(0,nb[0].r[0][1]-.25))}},'이 문항 빈칸 '+nb.length+'개 풀기'):null));
 }
 
@@ -1452,7 +1458,7 @@ function updateSub(){
   const vis=visiblePages();
   for(const K of ['blank','recall']){if(!has(K))continue;
     const isB=K==='blank';sec(isB?'빈칸':'목차');
-    if(isB&&D.quiz){const sl=el('select',{class:'chip',title:'쪽지 문항별로 빈칸 보기',onchange:e=>{const v=e.target.value;BQ=v==='0'?0:(isNaN(+v)?v:+v);renderAll();updateSub()}},el('option',{value:0},'전체 빈칸'),el('option',{value:'quiz'},'핵심 빈칸만'),el('option',{value:'mine'},'내 빈칸만'),...D.quiz.items.map(it=>el('option',{value:it.q},it.q+'번 ('+it.type+')')));sl.value=String(BQ);s.append(sl)}
+    if(isB&&D.quiz){const sl=el('select',{class:'chip',title:'쪽지 문항별로 빈칸 보기',onchange:e=>{const v=e.target.value;BQ=v==='0'?0:(isNaN(+v)?v:+v);renderAll();updateSub()}},el('option',{value:0},'전체 빈칸'),el('option',{value:'quiz'},'핵심 빈칸만'),el('option',{value:'mine'},'내 빈칸만'),...D.quiz.items.map(it=>el('option',{value:it.q},qLbl(it.q)+' ('+it.type+')')));sl.value=String(BQ);s.append(sl)}
     const hid=isB?items('blanks').filter(b=>vis.includes(b.p)&&!opened.has(b.id)&&!hiddenByRecall(b)&&inBQ(b)).length:heads().filter(h=>vis.includes(h.p)&&recallable(h)&&!recallShown.has(h.id)).length;
     s.append(el('span',{style:'font-size:12px;color:var(--ink-2)'},'보이는 쪽 가려진 '+(isB?'빈칸':'목차')+' '+hid+'개'),
       el('button',{class:'tb primary',onclick:()=>{LASTB=null;nextBlank(K)}},'다음 ▶'),
@@ -1608,25 +1614,31 @@ $('#goForm').addEventListener('submit',e=>{e.preventDefault();const n=parseInt($
   jumpTo(i,0);$('#goPage').blur()});
 /* ---------- 회차 합치기 ---------- */
 async function loadRounds(){
-  const parts=await Promise.all(ROUNDS.map(r=>fetch('data/'+r+'.json').then(x=>x.json())));
+  /* 기기에 들어 있는 편만 연다. 쪽 번호(메모·필기 기준)가 밀리지 않게, 앞에서부터 이어진 편까지만 쓴다. */
+  const parts=[],RK=[];
+  for(const r of ROUNDS){let j=null;try{const x=await fetch('data/'+r+'.json');if(x.ok)j=await x.json()}catch(e){}
+    if(!j||!Array.isArray(j.pages))break;parts.push(j);RK.push(r)}
+  if(!parts.length)throw new Error('교재가 기기에 없습니다');
   const M={pages:[],heads:[],blanks:[],links:[],dumunja:[],stats:[],caseMarks:[],proseMarks:[],search:[],maps:{},rounds:[]};
   let off=0;
-  parts.forEach((R,ri)=>{const rk=ROUNDS[ri];const pre=ri===0?'':rk+':';const P=x=>x==null||!pre?x:pre+x;
+  parts.forEach((R,ri)=>{const rk=RK[ri];const pre=ri===0?'':rk+':';const P=x=>x==null||!pre?x:pre+x;
+    const part=String(R.range||'').split(' (')[0]||R.title;const Q=q=>(typeof q==='number'&&ri>0)?ri*1000+q:q; /* 2편부터는 문항 번호가 1편과 겹치지 않게 */
     R.pages.forEach(pg=>M.pages.push({...pg,i:pg.i+off,src:'pages/'+rk+'/p'+String(pg.i).padStart(2,'0')+'.jpg',round:rk}));
     for(const k of ['heads','blanks','links','dumunja','stats','caseMarks','proseMarks'])for(const x of (R[k]||[])){
       const y={...x,id:P(x.id),p:x.p+off};
       if(k==='links'&&y.h)y.h=P(y.h);if(k==='dumunja'&&y.cue)y.cue=P(y.cue);if(typeof y.tp==='number')y.tp+=off;
       if(Array.isArray(y.t))y.t=y.t.map(t=>({...t,p:t.p+off}));if(Array.isArray(y.ans))y.ans=y.ans.map(a=>({...a,p:a.p+off}));
+      if(k==='blanks')y.q=Q(y.q);
       M[k].push(y)}
     for(const q of (R.search||[]))M.search.push([q[0]+off,...q.slice(1)]);
     for(const [k,v] of Object.entries(R.maps||{}))M.maps[P(k)]=v;
-    (R.scholars||[]).forEach(g=>{M.scholars=M.scholars||[];M.scholars.push({...g,items:g.items.map(it=>({...it,p:it.p.map(x=>x+off)}))})});
-    if(R.quiz){M.quiz=M.quiz||{title:R.quiz.title,items:[]};R.quiz.items.forEach(it=>M.quiz.items.push({...it,key:(pre||'')+it.q,dir:'quiz/'+rk+'/'}))}
-    (R.qspans||[]).forEach(sp=>{M.qspans=M.qspans||[];M.qspans.push({...sp,p:sp.p+off})});
-    M.rounds.push({key:rk,title:R.title,range:R.range,exam:R.exam,start:off,n:R.pages.length});
+    (R.scholars||[]).forEach(g=>{M.scholars=M.scholars||[];M.scholars.push({...g,part,items:g.items.map(it=>({...it,p:it.p.map(x=>x+off)}))})});
+    if(R.quiz){M.quiz=M.quiz||{title:R.quiz.title,items:[]};R.quiz.items.forEach(it=>M.quiz.items.push({...it,q:Q(it.q),no:it.q,part,qt:R.quiz.title,key:(pre||'')+it.q,dir:'quiz/'+rk+'/'}))}
+    (R.qspans||[]).forEach(sp=>{M.qspans=M.qspans||[];M.qspans.push({...sp,q:Q(sp.q),p:sp.p+off})});
+    M.rounds.push({key:rk,title:R.title,part,range:R.range,exam:R.exam,start:off,n:R.pages.length});
     off+=R.pages.length});
   const f=M.rounds[0],l=M.rounds[M.rounds.length-1];
-  M.title=M.rounds.length>1?f.title+'~'+l.title:f.title;
+  M.title=M.rounds.length>1?f.part+'~'+l.part:f.title;if(M.quiz&&M.rounds.length>1)M.quiz.title='쪽지시험';
   M.range=M.rounds.map(r=>r.title+': '+r.range).join(' / ');
   M.exam=M.rounds.map(r=>r.exam).join(' / ');
   return M}
@@ -1636,7 +1648,7 @@ function normU(u){const b={ov:{blanks:{},heads:{},links:{},dumunja:{},stats:{},p
   u=u||{};for(const k of Object.keys(u))if(u[k]!==undefined)b[k]=u[k];for(const k of['ov','add'])for(const kk of['blanks','heads','links','dumunja','stats','proseMarks','caseMarks'])b[k][kk]=b[k][kk]||(k==='ov'?{}:[]);return b}
 function applyU(){applyMenu();applyEye();$('#bandBtn').setAttribute('aria-pressed',String(U.band));$('#kwBtn').setAttribute('aria-pressed',String(U.kw!==false));$('#stBtn').setAttribute('aria-pressed',String(U.st!==false));$('#cmBtn').setAttribute('aria-pressed',String(U.cm!==false));$('#pmBtn').setAttribute('aria-pressed',String(U.pm!==false));$('#qsBtn').setAttribute('aria-pressed',String(U.qs!==false));updateStatus();applyLayout(true);PG.forEach((p,i)=>{p.img.src=pageSrc(i);if(p.canvas)drawStrokes(i)});renderAll();renderTree();renderCur();updateSub()}
 (async function boot(){
-  D=await loadRounds();
+  try{D=await loadRounds()}catch(e){if(window.INSA){location.replace('index.html#stay');return}throw e}
   $('#rangeLbl').textContent=D.rounds.length>1?D.title:D.title+' · '+D.rounds[0].range;
   applyLayout(false);buildPages();applyLayout(false);CUR=heads()[0];renderTree();renderCur();updateSub();
   await Store.init();
