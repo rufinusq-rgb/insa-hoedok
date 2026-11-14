@@ -179,6 +179,10 @@ body.noside #back{left:calc(16px + env(safe-area-inset-left,0px))}
 #cur .r{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
 #cur .r button{border:1px solid var(--line);background:var(--panel);border-radius:6px;padding:2px 8px;font-size:12px}
 #tree{overflow:auto;padding:4px 6px 40px;min-height:0;font-size:13px}
+.pjump{position:sticky;top:-4px;z-index:2;display:flex;flex-wrap:wrap;gap:4px;align-items:center;margin:-4px -6px 2px;padding:4px 8px;background:var(--panel);border-bottom:1px solid var(--line)}
+.pjump .pl{font-size:11px;color:var(--ink-3);margin-right:2px}
+.pjump button{min-width:26px;height:24px;padding:0 6px;border:1px solid var(--line);background:transparent;color:inherit;border-radius:6px;font-size:12px;line-height:1}
+.pjump button.on{background:var(--accent-soft);font-weight:700}
 .node{display:flex;align-items:flex-start;gap:4px;padding:3px 6px;border-radius:6px;cursor:pointer;line-height:1.4}
 .node:hover{background:var(--well)}
 .node.on{background:var(--accent-soft)}
@@ -883,13 +887,18 @@ function renderTree(){
   const draw=(ns,into)=>{for(const n of ns){const h=n.h;const hasK=n.kids.length>0;const col=collapsed.has(h.id);
     const hide=false;
     const rd=(U.reads[h.id]||[]).length;
-    const row=el('div',{class:'node'+(h.id===curH?' on':''),'data-lv':h.lv,onclick:e=>{if(hide){recallShown.add(h.id);renderTree();renderPage(h.p);return}jumpTo(h.p,h.y)}},
+    const row=el('div',{class:'node'+(h.id===curH?' on':''),'data-lv':h.lv,'data-hid':h.id,onclick:e=>{if(hide){recallShown.add(h.id);renderTree();renderPage(h.p);return}jumpTo(h.p,h.y)}},
       el('button',{class:'tw','aria-label':col?'펼치기':'접기',onclick:e=>{e.stopPropagation();if(!hasK)return;col?collapsed.delete(h.id):collapsed.add(h.id);renderTree()}},hasK?(col?'▶':'▼'):''),
       h.lv>=3?el('span',{class:'mk lv'+Math.min(4,h.lv-2)}):el('span',{class:'mk'}),
       el('span',{class:'tt'+(hide?' hidden-t':'')},hide?h.t.replace(/./g,'＿').slice(0,12):h.t),
       el('span',{class:'pg'},/^\d/.test(D.pages[h.p].label)?D.pages[h.p].label.split(' ')[0]:''));
     into.append(row);
     if(hasK&&!col){const k=el('div',{class:'kids'});into.append(k);draw(n.kids,k)}}};
+  /* 편 바로가기: 목차 맨 위 한 줄. 기기에 들어 있는 편만 번호로 보인다 */
+  const ps=[],seen=new Set();for(const h of heads()){if(h.lv!==0)continue;const m=String(h.t).match(/^제\s*(\d+)\s*편/);if(!m||seen.has(m[1]))continue;seen.add(m[1]);ps.push({n:m[1],h})}
+  if(ps.length>1){let cp=CUR?CUR.p:null;try{const vp=visiblePages();if(vp.length)cp=Math.max(...vp)}catch(e){}let on=null;if(cp!=null)for(const x of ps)if(x.h.p<=cp)on=x.n;
+    t.append(el('div',{class:'pjump'},el('span',{class:'pl'},'편'),...ps.map(x=>el('button',{class:x.n===on?'on':'',title:x.h.t,onclick:()=>{collapsed.delete(x.h.id);{const v=$('#viewer');v.scrollTo({top:Math.max(0,PG[x.h.p].box.offsetTop-90),behavior:'auto'})}if(window.innerWidth<=820)$('#side').classList.remove('open');
+      setTimeout(()=>{const r=[...document.querySelectorAll('#tree .node')].find(e=>e.dataset.hid===x.h.id);if(r){const T=$('#tree');T.scrollTop+=r.getBoundingClientRect().top-T.getBoundingClientRect().top-34}},600)}},x.n))))}
   draw(buildTree(),t);
 }
 /* current section + 회독 */
