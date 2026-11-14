@@ -400,6 +400,7 @@ textarea.dump{width:100%;min-height:160px;font:12px/1.4 ui-monospace,monospace;b
           <button data-act="replace">페이지 이미지 교체</button>
           <button data-act="help">사용법</button>
           <button data-act="home">드라이브·교재 관리</button>
+          <div style="padding:6px 10px 2px;font-size:11px;opacity:.6">앱 버전 21</div>
         </div>
       </div>
     </div>
@@ -572,7 +573,7 @@ function renderPage(i){
     
     if(R){ov.append(rvBox('heads',h,hb,0,(h.lv>=3?'띠 '+(h.lv-2):'띠 없음')+' · '+h.t.slice(0,14)));continue}
     if(has('recall')&&h.lv>=4&&!trivialHead(h)&&!recallShown.has(h.id)){const bc=BANDC[Math.min(3,h.lv-3)];ov.append(boxEl(hb,'hc',{style:`left:${pct(hb[0])};top:${pct(hb[1])};width:${pct(Math.max(hb[2],.12))};height:${pct(hb[3])};box-shadow:inset 0 -4px 0 ${bc},inset 0 0 0 1.5px #4fb06c`,title:'눌러서 확인',onclick:()=>{recallShown.add(h.id);for(const b of blanksInHead(h))opened.add(b.id);renderPage(i);renderTree();updateSub()}}));continue}
-    if(U.band&&h.lv>=3)ov.append(boxEl(hb,'band lv'+Math.min(4,h.lv-2)));
+    if(U.band&&h.lv>=3&&!U.pageImg[sk(i)])ov.append(boxEl(hb,'band lv'+Math.min(4,h.lv-2)));   /* 교체한 쪽은 PDF에 목차 형광펜이 이미 칠해져 있어 겹쳐 그리지 않는다 */
     if(has('recall')&&recallable(h)&&recallShown.has(h.id))ov.append(boxEl(hb,'',{style:`left:${pct(hb[0])};top:${pct(hb[1])};width:${pct(hb[2])};height:${pct(hb[3])};cursor:pointer;z-index:2`,title:'다시 가리기',onclick:ev=>{ev.stopPropagation();recallShown.delete(h.id);for(const b of blanksInHead(h))opened.delete(b.id);renderPage(i);renderTree();updateSub()}}));
   }
   // 판례 표시 (쟁점·사실·결론)
