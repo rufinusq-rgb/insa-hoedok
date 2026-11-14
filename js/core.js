@@ -3,7 +3,7 @@
 (function(){
 const CFG = {
   // Google Cloud에서 받은 웹 클라이언트 ID. 공개해도 되는 값이다(비밀번호 아님).
-  CLIENT_ID: '',
+  CLIENT_ID: '762064090079-16cnbffi2a62234cour2ukb622a7gvat.apps.googleusercontent.com',
   SCOPE: 'https://www.googleapis.com/auth/drive.file',
   FOLDER: '인사 회독 앱',
   // 편(회차) 목록. 새 편을 넣으면 여기에 덧붙인다. file = 드라이브에 올라갈 교재 묶음 이름
