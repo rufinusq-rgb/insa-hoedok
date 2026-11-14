@@ -85,10 +85,10 @@ async function refreshContent(){
   const box = $('#ctRows'); box.textContent = '';
   let driveFiles = [];
   if(Drive.token()){ try{ driveFiles = await Drive.list(); }catch(e){ log('드라이브 목록을 못 읽음: ' + e.message); } }
-  let allOk = true, chain = true, usable = 0;   // usable: 앞에서부터 이어서 들어 있는 편 수(이만큼은 열 수 있다)
+  let allOk = true, chain = true, usable = 0;   // usable: 기기에 들어 있는 편 수
   for(const r of CFG.ROUNDS){
     const have = await Content.has(r.key);
-    if(have && chain) usable++; else chain = false;
+    if(have) usable++;
     const onDrive = driveFiles.find(f => f.name === r.file);
     const row = document.createElement('div'); row.className = 'row';
     const lab = document.createElement('div'); lab.innerHTML = '<b>' + r.title + '</b> <span class="note">' + (have ? '기기에 있음' : onDrive ? '드라이브에 있음 · 기기에 받기 필요' : '아직 없음') + (have && onDrive ? ' · 드라이브 보관됨' : '') + '</span>';
@@ -141,7 +141,7 @@ async function refreshAll(){
   document.querySelectorAll('.pb').forEach(e => e.remove());
   const d = await refreshDrive(); const c = await refreshContent(); await refreshRec();
   const go = $('#go'); go.disabled = !c || busy;
-  $('#goNote').textContent = !c ? '교재를 먼저 넣어 주세요.' : refreshContent.missing ? '아직 넣지 않은 편이 있습니다. 들어 있는 편까지만 열립니다. 새 편은 위 「묶음 파일 넣기」로 넣어 주세요.' : (Drive.configured() && !d ? '드라이브를 연결하지 않고 열면 기록은 이 기기에만 저장되고, 나중에 연결하면 그때 올라갑니다.' : '');
+  $('#goNote').textContent = !c ? '교재를 먼저 넣어 주세요.' : refreshContent.missing ? '아직 넣지 않은 편이 있습니다. 들어 있는 편만 열립니다. 새 편은 위 「묶음 파일 넣기」로 넣어 주세요.' : (Drive.configured() && !d ? '드라이브를 연결하지 않고 열면 기록은 이 기기에만 저장되고, 나중에 연결하면 그때 올라갑니다.' : '');
   return {d, c};
 }
 
