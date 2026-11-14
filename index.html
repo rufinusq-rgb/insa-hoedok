@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="ko"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>인사노무관리론 회독</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<meta name="theme-color" content="#9b1c2c">
+<style>
+:root{--ink:#1d2430;--ink2:#4a5466;--line:#d9dce3;--acc:#9b1c2c;--ok:#1f7a4d;--warn:#b85c00;--soft:#f3f4f6}
+*{box-sizing:border-box}
+body{margin:0;font:15px/1.55 system-ui,-apple-system,"Noto Sans KR",sans-serif;color:var(--ink);background:var(--soft)}
+main{max-width:620px;margin:0 auto;padding:28px 18px 60px}
+h1{font-size:21px;margin:0 0 4px}
+.sub{color:var(--ink2);margin:0 0 22px;font-size:14px}
+.card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:14px}
+.card h2{font-size:15px;margin:0 0 8px;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.st{font-size:13px;font-weight:500;padding:2px 8px;border-radius:10px;background:#eef0f4;color:var(--ink2);white-space:nowrap}
+.st.ok{background:#e1f2e8;color:var(--ok)} .st.warn{background:#fff0dc;color:var(--warn)}
+p{margin:6px 0}
+.row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 0;border-top:1px solid #eef0f4}
+.row:first-of-type{border-top:0}
+button{font:inherit;font-size:14px;padding:8px 14px;border-radius:8px;border:1px solid var(--line);background:#fff;color:var(--ink);cursor:pointer}
+button.primary{background:var(--acc);border-color:var(--acc);color:#fff;font-weight:600}
+button:disabled{opacity:.45;cursor:default}
+.big{width:100%;padding:14px;font-size:16px;margin-top:6px}
+.note{font-size:13px;color:var(--ink2)}
+.prog{height:6px;background:#eef0f4;border-radius:3px;overflow:hidden;margin-top:6px}
+.prog i{display:block;height:100%;width:0;background:var(--acc)}
+#log{font-size:13px;color:var(--ink2);white-space:pre-wrap}
+</style>
+</head><body>
+<main>
+  <h1>인사노무관리론 회독</h1>
+  <p class="sub">클로드 밖에서 돌아가는 회독 앱입니다. 기록은 이 기기와 구글드라이브에 저장됩니다.</p>
+
+  <div class="card" id="cDrive">
+    <h2>구글드라이브 <span class="st" id="drSt">확인 중</span></h2>
+    <p class="note" id="drNote"></p>
+    <button id="drBtn" hidden>드라이브 연결하기</button>
+  </div>
+
+  <div class="card" id="cContent">
+    <h2>교재 <span class="st" id="ctSt">확인 중</span></h2>
+    <div id="ctRows"></div>
+    <p class="note">교재 묶음(zip)은 처음 한 번만 넣으면 됩니다. 드라이브가 연결돼 있으면 드라이브에도 올라가서, 기기를 바꾸거나 저장공간이 비워져도 다시 받을 수 있습니다.</p>
+    <input type="file" id="zipIn" accept=".zip,application/zip" hidden>
+    <div class="prog" id="prog" hidden><i></i></div>
+  </div>
+
+  <div class="card" id="cRec">
+    <h2>내 기록 <span class="st" id="rcSt">확인 중</span></h2>
+    <p class="note" id="rcNote"></p>
+  </div>
+
+  <button class="primary big" id="go" disabled>회독 시작</button>
+  <p class="note" style="text-align:center" id="goNote"></p>
+  <div id="log"></div>
+</main>
+<script src="js/jszip.min.js"></script>
+<script src="js/core.js"></script>
+<script>
+'use strict';
+const {CFG, Local, Content, Drive, Sync, lastWrite} = INSA;
+const $ = s => document.querySelector(s);
+const log = t => { $('#log').textContent += t + '\n'; };
+let pendingBackup = null;
+
+if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(e => log('오프라인 준비 실패: ' + e.message));
+if(navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(()=>{});
+
+function setSt(id, txt, cls){ const e = $(id); e.textContent = txt; e.className = 'st' + (cls ? ' ' + cls : ''); }
+function prog(a, b){ const p = $('#prog'); p.hidden = !b || a >= b; p.firstElementChild.style.width = (b ? Math.round(a / b * 100) : 0) + '%'; }
+
+async function refreshDrive(){
+  const btn = $('#drBtn');
+  if(!Drive.configured()){ setSt('#drSt', '설정 대기', 'warn'); $('#drNote').textContent = '드라이브 연결 설정이 아직 들어가지 않았습니다. 그동안 기록은 이 기기에만 저장됩니다.'; btn.hidden = true; return false; }
+  if(Drive.token()){ setSt('#drSt', '연결됨', 'ok'); $('#drNote').textContent = '기록이 바뀌면 몇 초 뒤 드라이브 「' + CFG.FOLDER + '」 폴더에 자동 저장됩니다.'; btn.hidden = true; return true; }
+  setSt('#drSt', '연결 필요', 'warn'); $('#drNote').textContent = '연결하면 드라이브의 최신 기록을 확인한 뒤 회독을 엽니다. 구글 로그인 창이 잠깐 뜰 수 있습니다.'; btn.hidden = false; return false;
+}
+
+async function refreshContent(){
+  const box = $('#ctRows'); box.textContent = '';
+  let driveFiles = [];
+  if(Drive.token()){ try{ driveFiles = await Drive.list(); }catch(e){ log('드라이브 목록을 못 읽음: ' + e.message); } }
+  let allOk = true;
+  for(const r of CFG.ROUNDS){
+    const have = await Content.has(r.key);
+    const onDrive = driveFiles.find(f => f.name === r.file);
+    const row = document.createElement('div'); row.className = 'row';
+    const lab = document.createElement('div'); lab.innerHTML = '<b>' + r.title + '</b> <span class="note">' + (have ? '기기에 있음' : onDrive ? '드라이브에 있음 · 기기에 받기 필요' : '아직 없음') + (have && onDrive ? ' · 드라이브 보관됨' : '') + '</span>';
+    row.append(lab);
+    if(!have){
+      allOk = false;
+      const b = document.createElement('button');
+      if(onDrive){ b.textContent = '드라이브에서 받기'; b.onclick = () => fromDrive(r, onDrive, b); }
+      else { b.textContent = '묶음 파일 고르기'; b.onclick = () => $('#zipIn').click(); }
+      row.append(b);
+    } else if(Drive.token() && !onDrive && r._blob){
+      const b = document.createElement('button'); b.textContent = '드라이브에 보관';
+      b.onclick = () => uploadPkg(r, r._blob, b); row.append(b);
+    }
+    box.append(row);
+  }
+  setSt('#ctSt', allOk ? '준비됨' : '넣어야 함', allOk ? 'ok' : 'warn');
+  return allOk;
+}
+
+async function refreshRec(){
+  const all = await Local.all(); const n = Object.keys(all).length;
+  const main = all['data/users/me/r01'];
+  const mine = main && main.v && main.v.add ? (main.v.add.blanks || []).filter(b => b.mine).length : 0;
+  const core = main && main.v && main.v.add ? (main.v.add.blanks || []).filter(b => b.core).length : 0;
+  if(!n){ setSt('#rcSt', '아직 없음'); $('#rcNote').textContent = pendingBackup ? '' : '처음이면 비어 있는 게 맞습니다. 아티팩트에서 옮겨 온 묶음에 기록이 들어 있으면 넣을지 묻습니다.'; }
+  else { setSt('#rcSt', '있음', 'ok'); const t = lastWrite(all);
+    $('#rcNote').textContent = '내 빈칸 ' + mine + '개, 직접 추가한 핵심 빈칸 ' + core + '개 · 마지막 변경 ' + (t ? new Date(t).toLocaleString('ko-KR') : '-'); }
+  if(pendingBackup){
+    const u = pendingBackup.user || {}; const pm = ((u.add || {}).blanks || []).filter(b => b.mine).length;
+    const p = document.createElement('p');
+    p.innerHTML = '묶음에 <b>' + (pendingBackup.saved || '').slice(0,10) + '</b> 기록(내 빈칸 ' + pm + '개)이 들어 있습니다. ';
+    const b = document.createElement('button'); b.className = 'primary';
+    b.textContent = n ? '이 기록으로 바꾸기' : '이 기록 넣기';
+    b.onclick = async () => {
+      if(n && !confirm('지금 이 기기에 있는 기록이 묶음 속 기록으로 바뀝니다. 지금 기록은 드라이브가 연결돼 있으면 따로 보관됩니다. 계속할까요?')) return;
+      if(n && Drive.token()){ try{ await Drive.saveText('기록_교체전보관_' + Date.now() + '.json', JSON.stringify(await Sync.snapshot())); }catch(e){ log('보관 실패: ' + e.message); if(!confirm('지금 기록을 드라이브에 보관하지 못했습니다. 그래도 바꿀까요?')) return; } }
+      const t = Date.now(); const docs = {'data/users/me/r01': {v: u, t}};
+      for(const [k, v] of Object.entries(pendingBackup.notes || {})) docs['data/users/me/r01/notes/' + k] = {v, t};
+      await Local.replaceAll(docs); pendingBackup = null; log('기록을 넣었습니다.');
+      if(Drive.token()){ try{ await Sync.push(); log('드라이브에도 저장했습니다.'); }catch(e){ log('드라이브 저장 실패: ' + e.message); } }
+      await refreshAll();
+    };
+    p.append(b); $('#rcNote').after(p); p.className = 'pb';
+  }
+}
+
+async function refreshAll(){
+  document.querySelectorAll('.pb').forEach(e => e.remove());
+  const d = await refreshDrive(); const c = await refreshContent(); await refreshRec();
+  const go = $('#go'); go.disabled = !c;
+  $('#goNote').textContent = !c ? '교재를 먼저 넣어 주세요.' : (Drive.configured() && !d ? '드라이브를 연결하지 않고 열면 기록은 이 기기에만 저장되고, 나중에 연결하면 그때 올라갑니다.' : '');
+  return {d, c};
+}
+
+async function uploadPkg(r, blob, btn){
+  if(btn) btn.disabled = true; log(r.title + ' 교재 묶음을 드라이브에 올리는 중… (크기에 따라 몇 분)');
+  try{ await Drive.saveBlob(r.file, blob, 'application/zip'); log(r.title + ' 드라이브 보관 완료'); }
+  catch(e){ log('드라이브에 올리지 못함: ' + e.message); }
+  if(btn) btn.disabled = false; await refreshContent();
+}
+
+async function fromDrive(r, f, btn){
+  btn.disabled = true; log(r.title + ' 교재를 드라이브에서 받는 중…');
+  try{
+    const blob = await Drive.readBlob(f.id, (a, b) => prog(a, b), +f.size);
+    prog(0, 0); log('기기에 넣는 중…');
+    await Content.importZip(blob, (a, b) => prog(a, b)); prog(0, 0);
+    log(r.title + ' 준비 완료');
+  }catch(e){ log('받지 못함: ' + e.message); }
+  await refreshAll();
+}
+
+$('#zipIn').addEventListener('change', async e => {
+  const f = e.target.files[0]; e.target.value = ''; if(!f) return;
+  log(f.name + ' 여는 중…');
+  try{
+    const res = await Content.importZip(f, (a, b) => prog(a, b)); prog(0, 0);
+    log('교재 넣기 완료: ' + res.rounds.join(', '));
+    if(res.backup) pendingBackup = res.backup;
+    for(const rk of res.rounds){ const r = CFG.ROUNDS.find(x => x.key === rk); if(!r) continue;
+      if(Drive.token()) await uploadPkg(r, f); else r._blob = f; }
+  }catch(err){ log('넣지 못함: ' + err.message); }
+  await refreshAll();
+});
+
+$('#drBtn').addEventListener('click', async () => {
+  try{ await Drive.connect(); }catch(e){ log('연결 실패: ' + e.message); return; }
+  await afterConnect();
+});
+async function afterConnect(){
+  try{
+    const r = await Sync.pull();
+    if(r.action === 'pulled') log('드라이브에 더 새 기록이 있어서 받아 왔습니다.');
+    else if(r.action === 'push'){ await Sync.push(); log('이 기기 기록을 드라이브에 저장했습니다.'); }
+  }catch(e){ log('기록 확인 실패: ' + e.message); }
+  for(const r of CFG.ROUNDS) if(r._blob) await uploadPkg(r, r._blob);
+  await refreshAll();
+}
+
+$('#go').addEventListener('click', async () => {
+  if(Drive.configured() && !Drive.token()){
+    if(confirm('드라이브를 연결하고 열까요?\n(취소를 누르면 연결 없이 엽니다)')){
+      try{ await Drive.connect(); await afterConnect(); }catch(e){ log('연결 실패: ' + e.message); }
+    }
+  }
+  location.href = 'app.html';
+});
+
+(async () => {
+  const {d, c} = await refreshAll();
+  // 매일 쓸 때: 교재가 있고 드라이브 연결이 살아 있으면 최신 기록만 확인하고 바로 연다
+  if(c && d && !pendingBackup && !location.hash.includes('stay')){
+    try{ const r = await Sync.pull(); if(r.action === 'push') await Sync.push(); }catch(e){ log('기록 확인 실패: ' + e.message); return; }
+    location.replace('app.html');
+  }
+})();
+</script>
+</body></html>
