@@ -30,6 +30,8 @@ function paint(){
 async function push(opt){
   if(pushing || !Drive.configured()) { paint(); return; }
   if(!Drive.token()){ paint(); return; }
+  // 줄어듦 경고가 떠 있는 동안은 사용자가 고를 때까지 드라이브에 올리지 않는다(기기에는 계속 저장)
+  if(shrink && !(opt && opt.allowShrink)){ paint(); return; }
   pushing = true; paint();
   try{ await Sync.push(opt); dirty = false; lastOk = Date.now(); lastErr = ''; shrink = null; }
   catch(e){ lastErr = e.message || String(e); console.warn('drive push', e);
