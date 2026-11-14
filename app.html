@@ -1093,10 +1093,11 @@ function renderDmTab(){
       el('button',{class:'chip','aria-pressed':String(DMV.hideL),onclick:()=>{DMV.hideL=!DMV.hideL;renderTree()}},'글자 가리기'),
       el('button',{class:'chip','aria-pressed':String(DMV.hideC),onclick:()=>{DMV.hideC=!DMV.hideC;renderTree()}},'주제 가리기'))));
   if(!ds.length){t.append(el('div',{class:'empty'},'아직 두문자가 없습니다. 위쪽 「두문자」 모드에서 「＋두문자」로 만들 수 있습니다.'));return}
-  const cb=(ids,lab)=>{const on=ids.length&&ids.every(id=>S.has(id));const some=!on&&ids.some(id=>S.has(id));const c=el('input',{type:'checkbox','aria-label':lab,onclick:e=>e.stopPropagation(),onchange:e=>{dmToggle(ids,e.target.checked);renderTree()}});c.checked=!!on;c.indeterminate=some;return c};
+  const cb=(ids,lab)=>{const on=ids.length&&ids.every(id=>S.has(id));const some=!on&&ids.some(id=>S.has(id));const c=el('input',{type:'checkbox','aria-label':lab,onclick:e=>e.stopPropagation(),onchange:e=>{dmToggle(ids,e.target.checked);Q.range=dmSelSet().size?'chk':'all';saveU();renderTree()}});c.checked=!!on;c.indeterminate=some;return c};
   const hideT=s=>s.replace(/[^\s]/g,'＿').slice(0,14);
   for(const g1 of dmGroups(ds)){
-    if(g1.h)t.append(el('div',{class:'dmg1'},g1.h.t));
+    if(g1.h){const pids=g1.ch.flatMap(g=>g.tp.flatMap(x=>x.ds.map(d=>d.id)));
+      t.append(el('label',{class:'dmg1',style:'display:flex;align-items:center;gap:6px;cursor:pointer'},cb(pids,'편 전체 체크'),el('span',{style:'flex:1'},g1.h.t),el('span',{class:'n',style:'font-weight:400;opacity:.7'},String(pids.length))))}
     for(const g2 of g1.ch){const ids=g2.tp.flatMap(x=>x.ds.map(d=>d.id));
       t.append(el('label',{class:'dmg2'},cb(ids,'장 전체 체크'),el('span',{},g2.h?g2.h.t:'(장 없음)'),el('span',{class:'n'},String(ids.length))));
       for(const g3 of g2.tp){t.append(el('div',{class:'dmg3'},DMV.hideC?hideT(g3.t):g3.t));
