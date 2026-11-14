@@ -93,6 +93,19 @@ const Content = {
     }
     if(onProg) onProg(names.length, names.length);
     return {rounds:[...rounds], backup};
+  },
+  // 기기에 들어 있는 한 편을 다시 zip으로 묶는다(드라이브 보관용). 기록은 들어가지 않는다.
+  async exportZip(rk){
+    const c = await caches.open(CFG.CONTENT_CACHE); const zip = new JSZip(); let n = 0;
+    for(const req of await c.keys()){
+      if(!req.url.startsWith(BASE)) continue;
+      const path = decodeURIComponent(req.url.slice(BASE.length));
+      if(!(path === 'data/' + rk + '.json' || path === 'data/' + rk + '_words.json' || path.startsWith('pages/' + rk + '/') || path.startsWith('quiz/' + rk + '/'))) continue;
+      const res = await c.match(req); if(!res) continue;
+      zip.file(path, await res.arrayBuffer()); n++;
+    }
+    if(!n) throw new Error('기기에 이 편이 없습니다');
+    return zip.generateAsync({type:'blob', compression:'STORE'});
   }
 };
 

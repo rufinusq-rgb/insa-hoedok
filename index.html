@@ -99,9 +99,9 @@ async function refreshContent(){
       if(onDrive){ b.textContent = '드라이브에서 받기'; b.onclick = () => fromDrive(r, onDrive, b); }
       else { b.textContent = '묶음 파일 고르기'; b.onclick = () => $('#zipIn').click(); }
       row.append(b);
-    } else if(Drive.token() && !onDrive && r._blob){
+    } else if(Drive.token() && !onDrive && !busy){
       const b = document.createElement('button'); b.textContent = '드라이브에 보관';
-      b.onclick = () => uploadPkg(r, r._blob, b); row.append(b);
+      b.onclick = () => backfillPkgs(); row.append(b);
     }
     box.append(row);
   }
@@ -152,6 +152,21 @@ async function uploadPkg(r, blob, btn){
   if(btn) btn.disabled = false; await refreshContent();
 }
 
+// 기기에는 있는데 드라이브에 없는 교재 묶음을 올린다(넣을 때 연결이 끊겨 있었거나, 올리는 중에 화면을 떠난 경우).
+async function backfillPkgs(){
+  if(busy || !Drive.token()) return;
+  let files; try{ files = await Drive.list(); }catch(e){ return; }
+  const todo = []; for(const r of CFG.ROUNDS) if(await Content.has(r.key) && !files.find(f => f.name === r.file)) todo.push(r);
+  if(!todo.length) return;
+  busy = true; $('#go').disabled = true;
+  for(const r of todo){
+    log(r.title + ' 교재가 드라이브에 없어서 올립니다. 「보관 완료」가 뜰 때까지 이 화면에 있어 주세요.');
+    try{ const blob = r._blob || await Content.exportZip(r.key); await uploadPkg(r, blob); delete r._blob; }
+    catch(e){ log(r.title + ' 올리지 못함: ' + e.message); }
+  }
+  busy = false; await refreshAll();
+}
+
 async function fromDrive(r, f, btn){
   btn.disabled = true; log(r.title + ' 교재를 드라이브에서 받는 중…');
   try{
@@ -173,8 +188,9 @@ $('#zipIn').addEventListener('change', async e => {
     if(res.backup) pendingBackup = res.backup;
     for(const rk of res.rounds){ const r = CFG.ROUNDS.find(x => x.key === rk); if(r) r._blob = f; }
     busy = false; await refreshAll();   // 기록 넣기 버튼을 먼저 보여 준다
+    busy = true; $('#go').disabled = true;   // 올리는 동안 「열기」로 화면을 떠나면 올리기가 끊긴다
     for(const rk of res.rounds){ const r = CFG.ROUNDS.find(x => x.key === rk);
-      if(r && Drive.token()){ await uploadPkg(r, f); delete r._blob; } }
+      if(r && Drive.token()){ log('「보관 완료」가 뜰 때까지 이 화면에 있어 주세요.'); await uploadPkg(r, f); delete r._blob; } }
   }catch(err){ log('넣지 못함: ' + err.message); }
   busy = false; await refreshAll();
 });
@@ -189,8 +205,8 @@ async function afterConnect(){
     if(r.action === 'pulled') log('드라이브에 더 새 기록이 있어서 받아 왔습니다.');
     else if(r.action === 'push'){ await Sync.push(); log('이 기기 기록을 드라이브에 저장했습니다.'); }
   }catch(e){ log('기록 확인 실패: ' + e.message); }
-  for(const r of CFG.ROUNDS) if(r._blob) await uploadPkg(r, r._blob);
   await refreshAll();
+  await backfillPkgs();
 }
 
 $('#go').addEventListener('click', async () => {
@@ -209,7 +225,9 @@ $('#go').addEventListener('click', async () => {
   if(c && d && !pendingBackup && !location.hash.includes('stay')){
     try{ const r = await Sync.pull(); if(r.action === 'push') await Sync.push(); }catch(e){ log('기록 확인 실패: ' + e.message); return; }
     location.replace('app.html');
+    return;
   }
+  if(d) await backfillPkgs();
 })();
 </script>
 </body></html>
