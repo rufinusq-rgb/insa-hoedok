@@ -192,16 +192,27 @@ const Sync = {
   // 사용자가 만든 빈칸 수(내 빈칸 + 직접 추가한 핵심 빈칸)
   count(docs){ const m = docs['data/users/me/r01']; const b = (m && m.v && m.v.add && m.v.add.blanks) || [];
     return b.filter(x => x.mine || x.core).length; },
+  // 지켜보는 개수: 빈칸(내+핵심), 내가 만든 두문자, 메모
+  counts(docs){ const m = docs['data/users/me/r01']; const a = (m && m.v && m.v.add) || {};
+    let memo = 0; for(const [k, rec] of Object.entries(docs)) if(/\/notes\/p\d+$/.test(k) && rec && rec.v && Array.isArray(rec.v.memos)) memo += rec.v.memos.length;
+    return {b: Sync.count(docs), d: (a.dumunja || []).filter(x => x.mine).length, m: memo}; },
+  // 크게 줄었는지: 빈칸은 10개 넘게, 두문자·메모는 3개 넘게 줄고 90% 아래로 떨어지면
+  shrunk(prev, now){ const L = [['b','빈칸',10],['d','두문자',3],['m','메모',3]]; const out = [];
+    for(const [k, nm, lim] of L){ const p = prev && prev[k]; if(typeof p === 'number' && p - now[k] > lim && now[k] < p * 0.9) out.push({nm, prev: p, now: now[k]}); }
+    return out; },
   async push(opt={}){
     const snap = await Sync.snapshot();
     if(!Object.keys(snap.docs).length) return null;
     // 안전장치: 빈칸이 갑자기 많이 줄었으면 드라이브 최신본을 덮어쓰지 않고 멈춘다
-    const n = Sync.count(snap.docs);
-    const prev = await Local.meta.get('pushedCount');
-    if(!opt.allowShrink && typeof prev === 'number' && prev - n > 10 && n < prev * 0.9){
+    const n = Sync.count(snap.docs); const cs = Sync.counts(snap.docs);
+    let prevs = await Local.meta.get('pushedCounts');
+    if(!prevs){ const pb = await Local.meta.get('pushedCount'); if(typeof pb === 'number') prevs = {b: pb}; }
+    const sh = opt.allowShrink ? [] : Sync.shrunk(prevs, cs);
+    if(sh.length){
       try{ await Drive.saveText('기록_확인필요_' + stamp() + '_' + Date.now() + '.json', JSON.stringify(snap)); }catch(e){}
-      const e = new Error('빈칸이 ' + prev + '개에서 ' + n + '개로 갑자기 줄어서 드라이브 저장을 멈췄습니다. 드라이브의 기록은 줄기 전 상태 그대로입니다.');
-      e.code = 'shrink'; e.prev = prev; e.now = n; throw e;
+      const what = sh.map(x => x.nm + ' ' + x.prev + '→' + x.now + '개').join(', ');
+      const e = new Error(what + '로 갑자기 줄어서 드라이브 저장을 멈췄습니다. 드라이브의 기록은 줄기 전 상태 그대로입니다.');
+      e.code = 'shrink'; e.what = what; e.prev = sh[0].prev; e.now = sh[0].now; throw e;
     }
     // 다른 기기가 그사이 드라이브에 더 새 기록을 올렸으면 덮어쓰지 않는다
     const cur = await Drive.find(Sync.LATEST);
@@ -217,9 +228,13 @@ const Sync = {
     const text = JSON.stringify(snap);
     await Drive.saveText(Sync.LATEST, text);
     await Drive.saveText('기록_' + stamp() + '.json', text);
+    // 시간대별 보관본(3시간 단위, 하루 최대 8개): 몇 시간 전 상태로도 되돌릴 수 있게
+    const hr = new Date().getHours(); const slot = String(hr - hr % 3).padStart(2,'0');
+    try{ await Drive.saveText('기록_' + stamp() + '_' + slot + '시.json', text); }catch(e){ console.warn('slot save', e); }
     await Local.meta.put('pushedT', snap.t);
     await Local.meta.put('pushedAt', Date.now());
     await Local.meta.put('pushedCount', n);
+    await Local.meta.put('pushedCounts', cs);
     return snap.t;
   },
   // 앱을 열기 전에 한 번: 드라이브 쪽이 더 새것이면 받아 온다. 기기 쪽 기록은 버리지 않고 드라이브에 따로 남긴다.
@@ -236,6 +251,7 @@ const Sync = {
     }
     await Local.replaceAll(remote.docs);
     await Local.meta.put('pushedCount', Sync.count(remote.docs));
+    await Local.meta.put('pushedCounts', Sync.counts(remote.docs));
     await Local.meta.put('pushedT', remote.t);
     await Local.meta.put('pushedAt', Date.parse(f.modifiedTime) || Date.now());
     return {action:'pulled', t: remote.t};

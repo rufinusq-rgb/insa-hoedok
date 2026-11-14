@@ -449,20 +449,27 @@ const Store={db:null,me:null,mode:'local',q:{},busy:{},
   ref(key){const base='data/users/'+this.me+'/'+ROUND;if(key.startsWith('bk_'))return this.db.doc(base).collection('backup').doc(key.slice(3));return key==='main'?this.db.doc(base):this.db.doc(base).collection('notes').doc(key)},
   async listBackups(){if(this.mode!=='db')return [];try{const s=await this.db.doc('data/users/'+this.me+'/'+ROUND).collection('backup').get();return s.docs.map(d=>({id:d.id,...JSON.parse(JSON.stringify(d.data()))}))}catch(e){return null}},
   async get(key){
-    if(this.mode==='db'){for(let t=0;t<4;t++){try{const s=await this.ref(key).get();return s.exists?JSON.parse(JSON.stringify(s.data())):null}catch(e){await new Promise(r=>setTimeout(r,600*(t+1)))}}return undefined}
+    if(this.mode==='db'){for(let t=0;t<4;t++){try{const s=await this.ref(key).get();const v=s.exists?JSON.parse(JSON.stringify(s.data())):null;const P=await this.pendNewer(key);if(P){this.put(key,P);return P}return v}catch(e){await new Promise(r=>setTimeout(r,600*(t+1)))}}return undefined}
     try{const v=localStorage.getItem('insa:'+ROUND+':'+key);return v?JSON.parse(v):null}catch(e){return null}
   },
-  put(key,val){this.q[key]=val;clearTimeout(this.q['_t'+key]);this.q['_t'+key]=setTimeout(()=>this.flush(key),700)},
+  pendKey(key){return 'insa:pend:'+ROUND+':'+key},
+  put(key,val){this.q[key]=val;if(this.mode==='db'&&!key.startsWith('bk_')){try{localStorage.setItem(this.pendKey(key),JSON.stringify({t:Date.now(),v:val}))}catch(e){}}clearTimeout(this.q['_t'+key]);this.q['_t'+key]=setTimeout(()=>this.flush(key),700)},
   async flush(key){
     if(this.busy[key]){this.q['_t'+key]=setTimeout(()=>this.flush(key),400);return}
     if(!(key in this.q))return; const val=this.q[key]; delete this.q[key];
-    if(this.mode==='db'){this.busy[key]=true;try{await this.ref(key).set(val)}catch(e){
+    if(this.mode==='db'){this.busy[key]=true;try{await this.ref(key).set(val);if(!(key in this.q)){try{localStorage.removeItem(this.pendKey(key))}catch(e){}}}catch(e){
         if(e&&e.code==='unavailable'){await new Promise(r=>setTimeout(r,800+Math.random()*800));try{await this.ref(key).set(val)}catch(e2){saveFail(e2)}}else saveFail(e)}
       finally{this.busy[key]=false}}
     else{try{localStorage.setItem('insa:'+ROUND+':'+key,JSON.stringify(val))}catch(e){saveFail(e)}}
   },
+  async pendNewer(key){// 앱이 갑자기 닫혀 기기 저장소에 못 쓴 마지막 변경
+    try{const raw=localStorage.getItem(this.pendKey(key));if(!raw)return null;const P=JSON.parse(raw);const rec=window.INSA&&await window.INSA.Local.get(this.ref(key).path);
+      if(!rec||P.t>rec.t)return P.v;localStorage.removeItem(this.pendKey(key));return null}catch(e){return null}},
   async listNotes(){
-    if(this.mode==='db'){try{const s=await this.db.doc('data/users/'+this.me+'/'+ROUND).collection('notes').get();const o={};s.docs.forEach(d=>o[d.id]=d.data());return JSON.parse(JSON.stringify(o))}catch(e){return {}}}
+    if(this.mode==='db'){try{const s=await this.db.doc('data/users/'+this.me+'/'+ROUND).collection('notes').get();const o={};s.docs.forEach(d=>o[d.id]=d.data());
+      const pre='insa:pend:'+ROUND+':';const ks=[];for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&k.startsWith(pre)&&/^p\d+$/.test(k.slice(pre.length)))ks.push(k.slice(pre.length))}
+      for(const k of ks){const P=await this.pendNewer(k);if(P){o[k]=P;this.put(k,P)}}
+      return JSON.parse(JSON.stringify(o))}catch(e){return {}}}
     const o={};try{for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);const m=k.match(/^insa:r01:(p\d+)$/);if(m)o[m[1]]=JSON.parse(localStorage.getItem(k))}}catch(e){}return o
   }
 };

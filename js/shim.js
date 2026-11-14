@@ -16,7 +16,7 @@ function paint(){
   let txt, warn = false;
   if(!Drive.configured()){ txt = '☁ 기기에만 저장 중'; warn = true; }
   else if(pushing) txt = '☁ 드라이브에 저장 중…';
-  else if(shrink){ txt = '⚠ 빈칸이 ' + shrink.prev + '→' + shrink.now + '개로 줄어 저장 멈춤 · 눌러서 확인'; warn = true; }
+  else if(shrink){ txt = '⚠ ' + shrink.what + '로 줄어 저장 멈춤 · 눌러서 확인'; warn = true; }
   else if(!Drive.token() && (dirty || !lastOk)){ txt = '☁ 드라이브 연결하기 (눌러 주세요)'; warn = true; }
   else if(lastErr && dirty){ txt = '☁ 저장 못함 · 눌러서 다시'; warn = true; }
   else if(dirty) txt = '☁ 곧 드라이브에 저장';
@@ -34,13 +34,13 @@ async function push(opt){
   try{ await Sync.push(opt); dirty = false; lastOk = Date.now(); lastErr = ''; shrink = null; }
   catch(e){ lastErr = e.message || String(e); console.warn('drive push', e);
     if(e.code === 'conflict') alert(e.message);
-    if(e.code === 'shrink'){ const first = !shrink; shrink = {prev: e.prev, now: e.now}; if(first) alert(e.message + '\n\n왼쪽 아래 ⚠ 표시를 눌러 확인해 주세요.'); } }
+    if(e.code === 'shrink'){ const first = !shrink; shrink = {prev: e.prev, now: e.now, what: e.what || ('빈칸 ' + e.prev + '→' + e.now + '개')}; if(first) alert(e.message + '\n\n왼쪽 아래 ⚠ 표시를 눌러 확인해 주세요.'); } }
   finally{ pushing = false; paint(); }
 }
 function schedule(){ dirty = true; paint(); clearTimeout(timer); timer = setTimeout(push, 5000); }
 pill.addEventListener('click', async () => {
   if(shrink){
-    if(confirm('빈칸이 ' + shrink.prev + '개에서 ' + shrink.now + '개로 줄었습니다.\n\n직접 지운 게 맞으면 [확인] → 지금 상태를 드라이브에 저장합니다.\n모르는 사이에 줄었다면 [취소] → 드라이브는 줄기 전 상태로 둡니다. 그다음 더보기 → 「내 빈칸 백업·되살리기」로 되살리거나 클로드에게 알려 주세요.')){
+    if(confirm(shrink.what + '로 줄었습니다.\n\n직접 지운 게 맞으면 [확인] → 지금 상태를 드라이브에 저장합니다.\n모르는 사이에 줄었다면 [취소] → 드라이브는 줄기 전 상태로 둡니다. 그다음 클로드에게 알려 주세요.')){
       if(!Drive.token()){ try{ await Drive.connect(); }catch(e){ alert(e.message); return; } }
       await push({allowShrink: true});
     }
@@ -56,6 +56,7 @@ document.addEventListener('visibilitychange', async () => {
   try{ if(typeof Store !== 'undefined' && Store.q) await Promise.all(Object.keys(Store.q).filter(k => !k.startsWith('_t')).map(k => Store.flush(k))); }catch(e){}
   if(dirty) push();
 });
+window.addEventListener('pagehide', () => { try{ if(typeof Store !== 'undefined' && Store.q) Object.keys(Store.q).filter(k => !k.startsWith('_t')).forEach(k => Store.flush(k)); }catch(e){} if(dirty) push(); });
 setInterval(() => { if(dirty && !pushing) push(); else paint(); }, 60000);
 function mount(){ if(!document.body){ setTimeout(mount, 50); return; } document.body.appendChild(pill); paint(); }
 mount();
