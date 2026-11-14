@@ -128,7 +128,7 @@ async function refreshRec(){
       const t = Date.now(); const docs = {'data/users/me/r01': {v: u, t}};
       for(const [k, v] of Object.entries(pendingBackup.notes || {})) docs['data/users/me/r01/notes/' + k] = {v, t};
       await Local.replaceAll(docs); pendingBackup = null; log('기록을 넣었습니다.');
-      if(Drive.token()){ try{ await Sync.push(); log('드라이브에도 저장했습니다.'); }catch(e){ log('드라이브 저장 실패: ' + e.message); } }
+      if(Drive.token()){ try{ await Sync.push({allowShrink: true}); log('드라이브에도 저장했습니다.'); }catch(e){ log('드라이브 저장 실패: ' + e.message); } }
       await refreshAll();
     };
     p.append(b); $('#rcNote').after(p); p.className = 'pb';

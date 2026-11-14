@@ -189,9 +189,20 @@ function stamp(d){ d = d || new Date(); return d.getFullYear() + String(d.getMon
 const Sync = {
   LATEST: '기록_최신.json',
   async snapshot(){ const docs = await Local.all(); return {app:'insa-hoedok', v:1, t: lastWrite(docs), saved: new Date().toISOString(), docs}; },
-  async push(){
+  // 사용자가 만든 빈칸 수(내 빈칸 + 직접 추가한 핵심 빈칸)
+  count(docs){ const m = docs['data/users/me/r01']; const b = (m && m.v && m.v.add && m.v.add.blanks) || [];
+    return b.filter(x => x.mine || x.core).length; },
+  async push(opt={}){
     const snap = await Sync.snapshot();
     if(!Object.keys(snap.docs).length) return null;
+    // 안전장치: 빈칸이 갑자기 많이 줄었으면 드라이브 최신본을 덮어쓰지 않고 멈춘다
+    const n = Sync.count(snap.docs);
+    const prev = await Local.meta.get('pushedCount');
+    if(!opt.allowShrink && typeof prev === 'number' && prev - n > 10 && n < prev * 0.9){
+      try{ await Drive.saveText('기록_확인필요_' + stamp() + '_' + Date.now() + '.json', JSON.stringify(snap)); }catch(e){}
+      const e = new Error('빈칸이 ' + prev + '개에서 ' + n + '개로 갑자기 줄어서 드라이브 저장을 멈췄습니다. 드라이브의 기록은 줄기 전 상태 그대로입니다.');
+      e.code = 'shrink'; e.prev = prev; e.now = n; throw e;
+    }
     // 다른 기기가 그사이 드라이브에 더 새 기록을 올렸으면 덮어쓰지 않는다
     const cur = await Drive.find(Sync.LATEST);
     const pushedAt = (await Local.meta.get('pushedAt')) || 0;
@@ -208,6 +219,7 @@ const Sync = {
     await Drive.saveText('기록_' + stamp() + '.json', text);
     await Local.meta.put('pushedT', snap.t);
     await Local.meta.put('pushedAt', Date.now());
+    await Local.meta.put('pushedCount', n);
     return snap.t;
   },
   // 앱을 열기 전에 한 번: 드라이브 쪽이 더 새것이면 받아 온다. 기기 쪽 기록은 버리지 않고 드라이브에 따로 남긴다.
@@ -223,6 +235,7 @@ const Sync = {
       await Drive.saveText('기록_충돌보관_' + stamp() + '_' + Date.now() + '.json', JSON.stringify({app:'insa-hoedok', v:1, t:lt, saved:new Date().toISOString(), docs:local}));
     }
     await Local.replaceAll(remote.docs);
+    await Local.meta.put('pushedCount', Sync.count(remote.docs));
     await Local.meta.put('pushedT', remote.t);
     await Local.meta.put('pushedAt', Date.parse(f.modifiedTime) || Date.now());
     return {action:'pulled', t: remote.t};
