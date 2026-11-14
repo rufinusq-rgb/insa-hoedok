@@ -1,0 +1,91 @@
+import asyncio,json
+from playwright.async_api import async_playwright
+B='http://localhost:8765/insa-hoedok/'
+PROMPT=['ㄱ']
+async def main():
+    async with async_playwright() as p:
+        b = await p.chromium.launch(executable_path='/usr/bin/google-chrome', args=['--no-sandbox'])
+        ctx = await b.new_context(viewport={'width':1280,'height':900}); page = await ctx.new_page()
+        errs=[];page.on('pageerror',lambda e:errs.append(str(e)))
+        async def dlg(d):
+            if d.type=='prompt': await d.accept(PROMPT[0])
+            else: await d.accept()
+        page.on('dialog', lambda d: asyncio.ensure_future(dlg(d)))
+        await page.goto(B+'index.html#stay'); await page.wait_for_timeout(800)
+        await page.set_input_files('#zipIn','/home/claude/test/test_r01.zip')
+        await page.wait_for_selector('.pb button', timeout=60000); await page.click('.pb button'); await page.wait_for_timeout(500)
+        await page.goto(B+'app.html'); await page.wait_for_timeout(4000)
+        cnt="(()=>{const a=U.add.blanks||[];return [a.filter(b=>b.mine).length,a.filter(b=>b.core).length,(U.add.dumunja||[]).length]})()"
+        print('blanks before',await page.evaluate(cnt));await page.evaluate("U.menu=true;applyMenu()")
+        vis=await page.evaluate("['#rangeLbl','#status','[data-mode=review]','#kwBtn','#pmBtn','#spreadBtn','#fitBtn','#finalBtn','#legend','[data-act=stats]','[data-act=help]','#tabDm','#wrongBtn','#qsBtn','[data-act=replace]'].map(s=>s+':'+(document.querySelector(s)&&document.querySelector(s).offsetParent!==null))")
+        print(vis)
+        print('two-up', await page.evaluate("PG[1].box.parentElement===PG[2].box.parentElement"))
+        await page.screenshot(path='/home/claude/test/a_top.png')
+        # make a dumunja on page 15: pick 3 words at line starts
+        await page.evaluate("setMode('quiz')");await page.evaluate("setMK('dm')"); await page.wait_for_timeout(1500)
+        await page.evaluate("document.querySelector('#pg15').scrollIntoView()"); await page.wait_for_timeout(800)
+        ws=await page.evaluate("(()=>{const L=dmLines(15).filter(l=>l.y0>0.3&&l.y0<0.9);return L.slice(0,40).map(l=>[l.x0,l.cy,l.t.slice(0,20)])})()")
+        for w in ws[:14]: print(w)
+        pick=[ws[0],ws[3],ws[6]]
+        for w in pick:
+            pt=await page.evaluate(f"(()=>{{const r=PG[15].box.getBoundingClientRect();return [r.left+({w[0]}+0.004)*r.width, r.top+{w[1]}*r.height]}})()")
+            await page.mouse.click(pt[0],pt[1]); await page.wait_for_timeout(700)
+        print('picked',await page.evaluate("DMB.t.length"))
+        await page.evaluate("setMK(false)"); await page.wait_for_timeout(500)
+        d=await page.evaluate("(()=>{const d=items('dumunja').slice(-1)[0];return {id:d.id,ch:dmT(d).map(dmChar),its:dmItems(d).map(x=>[x.auto,x.n,x.r.map(v=>+v.toFixed(3))]),cue:dmCue(d)&&dmCue(d).t}})()")
+        print('new dm',d)
+        print('book dm chars',await page.evaluate("items('dumunja').map(d=>dmT(d).map(dmChar).join(''))"))
+        # open tab
+        await page.evaluate("openDmTab()"); await page.wait_for_timeout(800)
+        await page.screenshot(path='/home/claude/test/a_tab.png')
+        await page.click('.dmit >> nth=0 >> .lt'); await page.wait_for_timeout(500)
+        await page.screenshot(path='/home/claude/test/a_tab_open.png')
+        # edit first letter
+        await page.click('.dmx .dmxr >> nth=0 >> .dml'); await page.wait_for_timeout(500)
+        await page.click('.dmx .dmxr >> nth=1 >> text=줄 ＋'); await page.wait_for_timeout(300)
+        await page.click('.dmx >> text=주제 바꾸기'); await page.wait_for_timeout(300)
+        await page.click('.dmx .cuepick .chip >> nth=1'); await page.wait_for_timeout(500)
+        d2=await page.evaluate(f"(()=>{{const d=getItem('dumunja','{d['id']}');return {{t:dmT(d).map(t=>[t.c||'',t.a||0]),cue:dmCue(d).t,n:dmItems(d).map(x=>x.n)}}}})()")
+        print('after edits',d2)
+        await page.screenshot(path='/home/claude/test/a_tab_edit.png')
+        # check one, range=chk, quiz
+        await page.click('.dmit >> nth=0 >> input'); await page.wait_for_timeout(300)
+        print('sel',await page.evaluate("U.dmSel"))
+        await page.click('.dmctl >> text=체크한 것'); await page.wait_for_timeout(300)
+        await page.click('.dmctl >> text=퀴즈 시작'); await page.wait_for_timeout(600)
+        await page.screenshot(path='/home/claude/test/a_quiz.png')
+        await page.click('#sheet .dmq .slot >> nth=0'); await page.wait_for_timeout(200)
+        await page.click('#sheet .hidebar >> nth=0'); await page.wait_for_timeout(300)
+        await page.screenshot(path='/home/claude/test/a_quiz2.png')
+        await page.click('#sheet >> text=모름'); await page.wait_for_timeout(300)
+        await page.click('#sheet .slot >> nth=0'); await page.click('#sheet >> text=다 맞힘'); await page.wait_for_timeout(300)
+        await page.screenshot(path='/home/claude/test/a_quiz_end.png')
+        print('end text', await page.evaluate("document.querySelector('#sheet').innerText.slice(0,200)"))
+        await page.click('#sheet >> text=틀린 것만 다시'); await page.wait_for_timeout(300)
+        print('again', await page.evaluate("DECK.q.length"))
+        await page.click('#sheet .sh >> text=닫기')
+        # order here
+        await page.click('.dmctl >> text=전체'); await page.click('.dmctl >> text=여기서부터'); await page.wait_for_timeout(300)
+        await page.click('.dmit >> nth=0 >> text=▶여기서'); await page.wait_for_timeout(300)
+        print('here deck', await page.evaluate("DECK.q.map(d=>d.id)"))
+        await page.click('#sheet .sh >> text=닫기')
+        # memo
+        await page.evaluate("setMode('read');setMode('memo')"); await page.wait_for_timeout(300)
+        await page.evaluate("addMemo(3,.3,.3)"); await page.wait_for_timeout(300)
+        await page.keyboard.type('메모시험'); await page.wait_for_timeout(300)
+        # wrong blanks
+        await page.evaluate("(()=>{const bs=items('blanks');[0,5,40,120].forEach(k=>{if(bs[k])U.res[bs[k].id]={ok:0,ng:1,last:'ng'}});saveU()})()")
+        await page.evaluate("openWrong()"); await page.wait_for_timeout(500)
+        await page.screenshot(path='/home/claude/test/a_wrong.png')
+        await page.click('.wchap label >> nth=0 >> input'); await page.wait_for_timeout(300)
+        print('wrongOff',await page.evaluate("U.wrongOff"), await page.evaluate("document.querySelectorAll('#sheet .qc').length"))
+        await page.evaluate("document.querySelector('#sheet .sh button:last-child').click()")
+        await page.wait_for_timeout(1500)
+        await page.reload(); await page.wait_for_timeout(4000)
+        print('blanks after reload',await page.evaluate(cnt))
+        print('memo after reload', await page.evaluate("JSON.stringify(NOTES['p3']&&NOTES['p3'].memos.map(m=>m.t))"))
+        print('dm persisted', await page.evaluate(f"(()=>{{const d=getItem('dumunja','{d['id']}');return [dmT(d).map(dmChar).join(''),dmCue(d).t,dmT(d).map(t=>t.a||0)]}})()"))
+        print('mineMirror dms', await page.evaluate("JSON.parse(localStorage.getItem('insa:mineMirror')).dms.length"))
+        print('errors',errs)
+        await b.close()
+asyncio.run(main())
