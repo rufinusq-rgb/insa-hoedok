@@ -191,6 +191,8 @@ body.noside #back{left:calc(16px + env(safe-area-inset-left,0px))}
 .node.on{background:var(--accent-soft)}
 .node .tw{width:16px;flex:none;color:var(--ink-3);font-size:10px;padding-top:3px;text-align:center;border:0;background:none}
 .node .tt{flex:1;min-width:0}
+.node.ans{box-shadow:inset 2px 0 0 #b0956b;border-radius:0 6px 6px 0}.node.ans .tt{color:var(--ink-2)}
+.node .anst{display:inline-block;font-size:10px;line-height:1.5;padding:0 5px;margin-right:5px;border:1px solid #b0956b;color:#b0956b;border-radius:4px;vertical-align:1px}
 .node .pg{color:var(--ink-3);font-size:11px;font-variant-numeric:tabular-nums;padding-top:1px}
 .node .rd{font-size:10px;color:var(--ok);border:1px solid var(--ok);border-radius:99px;padding:0 5px;margin-top:2px}
 .node[data-lv="0"] .tt,.node[data-lv="1"] .tt{font-weight:600}
@@ -876,9 +878,26 @@ function jumpTo(p,y=0,flash=false,fr=null){
 }
 
 /* ---------- tree ---------- */
+/* 예시문제 답안 표시: OCR 줄 「예시문제」 바로 뒤에 Ⅰ / 1. / ① 로 시작하는 목차가 오면 그 답안의 목차로 본다.
+   끝: 장(lv≤2), 다음 「예시문제」, 같은 단(lv3)에서 번호 모양이 바뀜(Ⅰ 답안 뒤 본문 「6.」 등), 1. 답안이면 본문 번호가 이어지는 곳.
+   기록에는 아무것도 저장하지 않는다(화면 표시만). */
+function markAns(){
+  const T=t=>/^(Ⅰ|Ⅱ|Ⅲ|Ⅳ|Ⅴ|Ⅵ|Ⅶ|Ⅷ|Ⅸ|Ⅹ|[IVX]+\s*\.)/.test(t)?'R':/^\d+\s*\./.test(t)?'N':/^[①-⑳]/.test(t)?'C':'?';
+  const num=t=>{const m=String(t).match(/^(\d+)\s*\./);return m?+m[1]:null};
+  const hs=(D.heads||[]).slice().sort((a,b)=>a.p-b.p||a.y-b.y);hs.forEach(h=>{delete h.ans});
+  const mk=(D.search||[]).filter(q=>/^예시문제/.test(String(q[5]))&&String(q[5]).length<=8).map(q=>({p:q[0],y:q[2]})).sort((a,b)=>a.p-b.p||a.y-b.y);
+  const after=(h,m)=>h.p>m.p||(h.p===m.p&&h.y>m.y);
+  mk.forEach((m,mi)=>{const nx=mk[mi+1];let k=hs.findIndex(h=>after(h,m));if(k<0)return;const h0=hs[k];
+    if(h0.lv<3||h0.p>m.p+1)return;const ty=T(h0.t);if(ty==='?')return;
+    let bodyN=null;for(let j=k-1;j>=0;j--){if(hs[j].lv<3)break;if(hs[j].lv===3&&!hs[j].ans){bodyN=num(hs[j].t);break}}
+    let expN=ty==='N'?num(h0.t):null;
+    for(let j=k;j<hs.length;j++){const h=hs[j];if(nx&&after(h,nx))break;if(h.lv<3)break;
+      if(j>k&&h.lv===h0.lv){if(T(h.t)!==ty)break;if(ty==='N'){const n=num(h.t);if(bodyN!=null&&n===bodyN+1&&n!==expN+1)break;expN=n}}
+      h.ans=j===k?2:1}});
+}
 function buildTree(){
-  const hs=heads();const root={kids:[],lv:-1};const st=[root];
-  for(const h of hs){const n={h,kids:[]};while(st.length>1&&st[st.length-1].h.lv>=h.lv)st.pop();st[st.length-1].kids.push(n);st.push(n)}
+  const hs=heads();const root={kids:[],lv:-1};const st=[root];const L=h=>h.ans?100+h.lv:h.lv;   /* 답안 목차는 앞의 본문 제목 아래로 들어간다 */
+  for(const h of hs){const n={h,kids:[]};while(st.length>1&&L(st[st.length-1].h)>=L(h))st.pop();st[st.length-1].kids.push(n);st.push(n)}
   return root.kids;
 }
 let collapsed=new Set();
@@ -892,10 +911,10 @@ function renderTree(){
   const draw=(ns,into)=>{for(const n of ns){const h=n.h;const hasK=n.kids.length>0;const col=collapsed.has(h.id);
     const hide=false;
     const rd=(U.reads[h.id]||[]).length;
-    const row=el('div',{class:'node'+(h.id===curH?' on':''),'data-lv':h.lv,'data-hid':h.id,onclick:e=>{if(hide){recallShown.add(h.id);renderTree();renderPage(h.p);return}jumpTo(h.p,h.y)}},
+    const row=el('div',{class:'node'+(h.id===curH?' on':'')+(h.ans?' ans':''),'data-lv':h.lv,'data-hid':h.id,onclick:e=>{if(hide){recallShown.add(h.id);renderTree();renderPage(h.p);return}jumpTo(h.p,h.y)}},
       el('button',{class:'tw','aria-label':col?'펼치기':'접기',onclick:e=>{e.stopPropagation();if(!hasK)return;col?collapsed.delete(h.id):collapsed.add(h.id);renderTree()}},hasK?(col?'▶':'▼'):''),
       h.lv>=3?el('span',{class:'mk lv'+Math.min(4,h.lv-2)}):el('span',{class:'mk'}),
-      el('span',{class:'tt'+(hide?' hidden-t':'')},hide?h.t.replace(/./g,'＿').slice(0,12):h.t),
+      el('span',{class:'tt'+(hide?' hidden-t':'')},h.ans===2?el('span',{class:'anst'},'예시답안'):'',hide?h.t.replace(/./g,'＿').slice(0,12):h.t),
       el('span',{class:'pg'},/^\d/.test(D.pages[h.p].label)?D.pages[h.p].label.split(' ')[0]:''));
     into.append(row);
     if(hasK&&!col){const k=el('div',{class:'kids'});into.append(k);draw(n.kids,k)}}};
@@ -1715,6 +1734,7 @@ function normU(u){const b={ov:{blanks:{},heads:{},links:{},dumunja:{},stats:{},p
 function applyU(){applyMenu();applyEye();$('#bandBtn').setAttribute('aria-pressed',String(U.band));$('#kwBtn').setAttribute('aria-pressed',String(U.kw!==false));$('#stBtn').setAttribute('aria-pressed',String(U.st!==false));$('#cmBtn').setAttribute('aria-pressed',String(U.cm!==false));$('#pmBtn').setAttribute('aria-pressed',String(U.pm!==false));$('#qsBtn').setAttribute('aria-pressed',String(U.qs!==false));updateStatus();applyLayout(true);PG.forEach((p,i)=>{p.img.src=pageSrc(i);if(p.canvas)drawStrokes(i)});renderAll();renderTree();renderCur();updateSub()}
 (async function boot(){
   try{D=await loadRounds()}catch(e){if(window.INSA){location.replace('index.html#stay');return}throw e}
+  try{markAns()}catch(e){console.warn('markAns',e)}
   $('#rangeLbl').textContent=D.rounds.length>1?D.title:D.title+' · '+D.rounds[0].range;
   applyLayout(false);buildPages();applyLayout(false);CUR=heads()[0];renderTree();renderCur();updateSub();
   await Store.init();
