@@ -68,7 +68,7 @@ setInterval(() => { if(dirty && !pushing) push(); else paint(); }, 60000);
    드라이브의 기록_최신.json이 이 기기가 마지막으로 올리거나 받은 것보다 새것인지 본다.
    새것이면 첫 화면(index.html)으로 보내 거기서 받아 온다(Sync.pull — 처음 열 때 쓰는 것과 같은 길).
    드라이브에 올리기 직전에도 확인한다(덮어쓰기 방지). 이 기기에 아직 안 올라간 작업이 있으면 알리고 받는다:
-   Sync.pull이 이 기기 기록을 기록_충돌보관_*로 드라이브에 남기고, 앱을 다시 열 때 restoreMine이 내 빈칸·핵심 빈칸·두문자를 되살린다. */
+   Sync.pull이 이 기기 기록을 기록_충돌보관_*로 드라이브에 남기고 쪽 메모·펜 필기를 mergeNote로 합친다. 앱을 다시 열 때 restoreMine이 내 빈칸·핵심 빈칸·두문자를 되살린다. */
 let checking = false, lastCheck = 0;
 async function flushAll(){ try{ if(typeof Store !== 'undefined' && Store.q) await Promise.all(Object.keys(Store.q).filter(k => !k.startsWith('_t')).map(k => Store.flush(k))); }catch(e){} }
 async function checkRemote(force){
@@ -87,7 +87,7 @@ async function checkRemote(force){
     // 드라이브에 이 기기가 아직 못 본 작업이 있는가: 한 번이라도 주고받은 기기는 pushedT로, 처음인 기기는 기기 기록 시각으로 판단
     if(pushedT ? remote.t <= pushedT : remote.t <= lt) return false;
     if(dirty || lt > pushedT)
-      alert('다른 기기에서 저장한 더 새 기록이 드라이브에 있어서 받아 옵니다.\n\n이 기기에서 아직 드라이브에 안 올라간 작업은 드라이브에 「기록_충돌보관」 파일로 따로 남기고, 내 빈칸·핵심 빈칸·두문자는 받아 온 기록에 다시 넣습니다.');
+      alert('다른 기기에서 저장한 더 새 기록이 드라이브에 있어서 받아 옵니다.\n\n이 기기에서 아직 드라이브에 안 올라간 작업도 받아 온 기록과 합칩니다(내 빈칸·핵심 빈칸·두문자·메모, 펜 필기는 더 나중에 고친 쪽). 합치기 전 이 기기 기록은 드라이브에 「기록_충돌보관」 파일로도 남깁니다.');
     leaving = true; clearTimeout(timer); dirty = false;
     try{ if(typeof Store !== 'undefined') Store.blocked = true; }catch(e){}
     pill.textContent = '☁ 다른 기기의 새 기록을 받아 오는 중…'; 

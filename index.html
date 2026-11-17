@@ -202,7 +202,7 @@ $('#drBtn').addEventListener('click', async () => {
 async function afterConnect(){
   try{
     const r = await Sync.pull();
-    if(r.action === 'pulled') log('드라이브에 더 새 기록이 있어서 받아 왔습니다.');
+    if(r.action === 'pulled'){ log('드라이브에 더 새 기록이 있어서 받아 왔습니다.'); if(r.merged){ await Sync.push(); log('이 기기 메모를 합쳐서 드라이브에 저장했습니다.'); } }
     else if(r.action === 'push'){ await Sync.push(); log('이 기기 기록을 드라이브에 저장했습니다.'); }
   }catch(e){ log('기록 확인 실패: ' + e.message); }
   await refreshAll();
@@ -223,7 +223,7 @@ $('#go').addEventListener('click', async () => {
   const {d, c} = await refreshAll();
   // 매일 쓸 때: 교재가 있고 드라이브 연결이 살아 있으면 최신 기록만 확인하고 바로 연다
   if(c && d && !pendingBackup && !location.hash.includes('stay')){
-    try{ const r = await Sync.pull(); if(r.action === 'push') await Sync.push(); }catch(e){ log('기록 확인 실패: ' + e.message); return; }
+    try{ const r = await Sync.pull(); if(r.action === 'push' || r.merged) await Sync.push(); }catch(e){ log('기록 확인 실패: ' + e.message); return; }
     location.replace('app.html');
     return;
   }

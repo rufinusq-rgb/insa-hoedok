@@ -64,6 +64,22 @@ const Local = {
     put: (k, v) => tx('blobs','readwrite', s => s.put(v, k))
   }
 };
+/* 쪽 메모·펜 필기 합치기. L = 이 기기 기록, R = 드라이브 기록({v,t}). 드라이브 것과 다르면 새 기록, 같으면 null */
+function mergeNote(L, R){
+  const lv = (L && L.v) || {}, rv = (R && R.v) || null;
+  if(!rv) return {v: lv, t: Date.now()};                     // 이 기기에만 있는 쪽
+  const del = [...new Set([...(lv.mdel || []), ...(rv.mdel || [])])];
+  const newerL = (L.t || 0) > (R.t || 0);
+  const byId = new Map();
+  for(const mm of (rv.memos || [])) if(mm && mm.id != null) byId.set(mm.id, mm);
+  for(const mm of (lv.memos || [])){ if(!mm || mm.id == null) continue; if(!byId.has(mm.id) || newerL) byId.set(mm.id, mm); }
+  const memos = [...byId.values()].filter(mm => !del.includes(mm.id));
+  const useL = (lv.sT || 0) > (rv.sT || 0);
+  const v = Object.assign({}, rv, {memos, mdel: del});
+  if(useL){ v.strokes = lv.strokes || []; v.sT = lv.sT; v.sS = lv.sS; }
+  if(JSON.stringify(v) === JSON.stringify(rv)) return null;
+  return {v, t: Date.now()};
+}
 function lastWrite(docs){ let t = 0; for(const v of Object.values(docs)) if(v && v.t > t) t = v.t; return t; }
 
 /* ---------- 교재 묶음: zip → Cache Storage ---------- */
@@ -270,15 +286,22 @@ const Sync = {
     if(Object.keys(local).length && lt > pushedT){                   // 양쪽 다 바뀜: 기기 쪽을 따로 보관
       await Drive.saveText('기록_충돌보관_' + stamp() + '_' + Date.now() + '.json', JSON.stringify({app:'insa-hoedok', v:1, t:lt, saved:new Date().toISOString(), docs:local}));
     }
-    await Local.replaceAll(remote.docs);
+    // 메모: 이 기기에서 바뀐 쪽 메모를 드라이브 쪽과 합친다(지운 메모는 mdel 묘비로 구별). 펜 필기: 더 나중에 고친 쪽(sT)을 남긴다.
+    const docs = Object.assign({}, remote.docs); let merged = 0;
+    for(const [k, L] of Object.entries(local)){
+      if(!/\/notes\/p\d+$/.test(k) || !L || !(L.t > pushedT)) continue;     // 지난번 주고받은 뒤 이 기기에서 바뀐 쪽만
+      const R = docs[k]; const m = mergeNote(L, R);
+      if(m){ docs[k] = m; merged++; }
+    }
+    await Local.replaceAll(docs);
     await Local.meta.put('pushedCount', Sync.count(remote.docs));
     await Local.meta.put('pushedCounts', Sync.counts(remote.docs));
     await Local.meta.put('pushedT', remote.t);
     await Local.meta.put('pushedAt', Date.parse(f.modifiedTime) || Date.now());
-    return {action:'pulled', t: remote.t};
+    return {action:'pulled', t: remote.t, merged};
   }
 };
 
-window.INSA = {CFG, Local, Content, Drive, Sync, stamp, lastWrite};
+window.INSA = {CFG, Local, Content, Drive, Sync, stamp, lastWrite, mergeNote};
 window.INSA_ROUNDS = CFG.ROUNDS.map(r => r.key);
 })();

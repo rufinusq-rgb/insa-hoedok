@@ -1,5 +1,5 @@
 /* 오프라인용: 앱 파일은 새 버전을 먼저 시도하고 안 되면 저장본, 교재(쪽 이미지·데이터)는 기기에 넣어 둔 것에서 꺼낸다 */
-const SHELL = 'insa-shell-v29';
+const SHELL = 'insa-shell-v30';
 const CONTENT = 'insa-content-v1';
 const SHELL_FILES = ['./', 'index.html', 'app.html', 'js/core.js', 'js/shim.js', 'js/jszip.min.js', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png'];
 

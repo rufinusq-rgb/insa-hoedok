@@ -1397,6 +1397,7 @@ function quizCard(body,k){
 /* ---------- memo ---------- */
 function note(i){return NOTES['p'+sk(i)]||(NOTES['p'+sk(i)]={memos:[],strokes:[]})}
 function saveNote(i){Store.put('p'+sk(i),NOTES['p'+sk(i)])}
+function penTouch(i){note(i).sT=Date.now()}   /* sT: 이 쪽 남기는 펜 필기를 마지막으로 고친 때. 두 기기 기록을 합칠 때 더 나중 것을 남긴다(펜은 태블릿에서만 씀) */
 function addMemo(i,x,y){const m={id:uid(),x:Math.min(x,.78),y,w:.26,h:.09,t:'',f:false};note(i).memos.push(m);saveNote(i);renderPage(i);setTimeout(()=>{const ta=document.querySelector('[data-m="'+m.id+'"] textarea');ta&&ta.focus()},30)}
 function memoEl(i,m){
   const e=el('div',{class:'memo'+(m.f?' fold':''),'data-m':m.id,style:`left:${pct(m.x)};top:${pct(m.y)};width:${pct(m.w)};height:${pct(m.h)}`});
@@ -1405,7 +1406,7 @@ function memoEl(i,m){
   ta.addEventListener('pointerdown',e=>e.stopPropagation());
   const hd=el('div',{class:'mh'},el('span',{},m.f?(m.t.split('\n')[0].slice(0,14)||'메모'):'메모'),
     el('button',{title:m.f?'펼치기':'접기',onclick:ev=>{ev.stopPropagation();m.f=!m.f;saveNote(i);renderPage(i)}},m.f?'▸':'▾'),
-    el('button',{title:'메모 지우기',onclick:ev=>{ev.stopPropagation();const N=note(i);if(m.t&&!e._arm){e._arm=true;ev.target.textContent='지울까요?';setTimeout(()=>{e._arm=false;ev.target.textContent='×'},2500);return}N.memos=N.memos.filter(x=>x!==m);saveNote(i);renderPage(i)}},'×'));
+    el('button',{title:'메모 지우기',onclick:ev=>{ev.stopPropagation();const N=note(i);if(m.t&&!e._arm){e._arm=true;ev.target.textContent='지울까요?';setTimeout(()=>{e._arm=false;ev.target.textContent='×'},2500);return}N.memos=N.memos.filter(x=>x!==m);(N.mdel=N.mdel||[]).push(m.id);saveNote(i);renderPage(i)}},'×'));
   const rz=el('span',{class:'rz'});e.append(hd,ta,rz);
   const drag=(ev,res)=>{if(ev.target.tagName==='BUTTON')return;ev.preventDefault();ev.stopPropagation();const b=PG[i].ov.getBoundingClientRect();const x0=ev.clientX,y0=ev.clientY,s={...m};
     const mv=k=>{const dx=(k.clientX-x0)/b.width,dy=(k.clientY-y0)/b.height;if(res){m.w=Math.max(.12,s.w+dx);m.h=Math.max(.05,s.h+dy);e.style.width=pct(m.w);e.style.height=pct(m.h)}else{m.x=Math.min(.98,Math.max(-.2,s.x+dx));m.y=Math.min(.98,Math.max(0,s.y+dy));e.style.left=pct(m.x);e.style.top=pct(m.y)}};
@@ -1444,7 +1445,7 @@ function ensureCanvas(i){
       if(Math.hypot(ev.clientX-p0.x0,ev.clientY-p0.y0)<10&&performance.now()-p0.t0<350){if(MKB){const b=c.getBoundingClientRect();const pt=[(ev.clientX-b.left)/b.width,(ev.clientY-b.top)/b.height];mkTap(i,pt);return}onBookTap(ev.clientX,ev.clientY);return}
       if(performance.now()-p0.t<80)fling(p0.vx,p0.vy);return}
     if(cur&&cur.mk){const a=cur.a,b2=cur.b;cur=null;mkClear(i);if(Math.hypot(a[0]-b2[0],(a[1]-b2[1])*1.4)<(MKB==='dm'?.012:.0025))mkTap(i,a);else mkRange(i,a,b2);return}
-    if(cur&&!cur.er&&cur.p.length>0){if(PENKEEP){pushUndo(i);note(i).strokes.push(cur);saveNote(i)}else{cur.tmp=1;pushUndo(i,true);(TEMP[i]=TEMP[i]||[]).push(cur)}}if(cur&&cur.er)ERASING[i]=false;if(cur&&cur.er)saveNote(i);cur=null;drawStrokes(i)};
+    if(cur&&!cur.er&&cur.p.length>0){if(PENKEEP){pushUndo(i);note(i).strokes.push(cur);penTouch(i);saveNote(i)}else{cur.tmp=1;pushUndo(i,true);(TEMP[i]=TEMP[i]||[]).push(cur)}}if(cur&&cur.er)ERASING[i]=false;if(cur&&cur.er){penTouch(i);saveNote(i)}cur=null;drawStrokes(i)};
   c.addEventListener('pointerup',end);c.addEventListener('pointercancel',end);
   c.addEventListener('contextmenu',e=>{if(has('pen'))e.preventDefault()});
 }
@@ -1471,9 +1472,9 @@ function eraseAt(i,pt,first){const N=NOTES['p'+sk(i)];const hit=N?N.strokes.filt
 const ERASING={};
 function visiblePages(){const v=$('#viewer');const top=v.scrollTop,bot=top+v.clientHeight;return PG.map((p,i)=>i).filter(i=>{const b=PG[i].box;return b.offsetTop<bot-60&&b.offsetTop+b.offsetHeight>top+60})}
 function clearVisible(){const ps=visiblePages().filter(i=>NOTES['p'+sk(i)]&&NOTES['p'+sk(i)].strokes.length);if(!ps.length){toast('보이는 쪽에 지울 펜 필기가 없습니다');return}
-  ps.forEach(i=>{pushUndo(i);NOTES['p'+sk(i)].strokes=[];saveNote(i);drawStrokes(i)});toast(ps.map(pageLabel).join(', ')+' 펜 필기를 모두 지웠습니다. "되돌리기"로 살릴 수 있습니다',3500)}
+  ps.forEach(i=>{pushUndo(i);NOTES['p'+sk(i)].strokes=[];penTouch(i);saveNote(i);drawStrokes(i)});toast(ps.map(pageLabel).join(', ')+' 펜 필기를 모두 지웠습니다. "되돌리기"로 살릴 수 있습니다',3500)}
 $('#penUndo').addEventListener('click',e=>{e.stopPropagation();if(MKB)mkUndo();else undoPen()});
-function undoPen(){const u=UNDO.pop();if(!u){toast('되돌릴 것이 없습니다');return}if(u.tmp){TEMP[u.i]=u.strokes}else{note(u.i).strokes=u.strokes;if(u.t)TEMP[u.i]=u.t;saveNote(u.i)}drawStrokes(u.i);if(!visiblePages().includes(u.i))jumpTo(u.i,0)}
+function undoPen(){const u=UNDO.pop();if(!u){toast('되돌릴 것이 없습니다');return}if(u.tmp){TEMP[u.i]=u.strokes}else{note(u.i).strokes=u.strokes;if(u.t)TEMP[u.i]=u.t;penTouch(u.i);saveNote(u.i)}drawStrokes(u.i);if(!visiblePages().includes(u.i))jumpTo(u.i,0)}
 function clearTemp(){const ps=Object.keys(TEMP).filter(i=>TEMP[i].length).map(Number);if(!ps.length){toast('지울 임시 필기가 없습니다');return}ps.forEach(i=>{pushUndo(i,true);TEMP[i]=[];drawStrokes(i)});toast('임시 필기를 모두 지웠습니다 ('+ps.map(pageLabel).join(', ')+')',3000)}
 
 /* ---------- mode & sub bar ---------- */
