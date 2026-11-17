@@ -9,7 +9,9 @@ const CFG = {
   // 편(회차) 목록. 새 편을 넣으면 여기에 덧붙인다. file = 드라이브에 올라갈 교재 묶음 이름
   ROUNDS: [
     {key:'r01', title:'제1편', file:'교재_r01.zip'},
-    {key:'r02', title:'제2편', file:'교재_r02.zip'}
+    {key:'r02', title:'제2편', file:'교재_r02.zip'},
+    {key:'r03', title:'제3편', file:'교재_r03.zip'},
+    {key:'r04', title:'제4편', file:'교재_r04.zip'}
   ],
   CONTENT_CACHE: 'insa-content-v1'
 };

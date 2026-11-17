@@ -573,7 +573,8 @@ function renderPage(i){
     
     if(R){ov.append(rvBox('heads',h,hb,0,(h.lv>=3?'띠 '+(h.lv-2):'띠 없음')+' · '+h.t.slice(0,14)));continue}
     if(has('recall')&&h.lv>=4&&!trivialHead(h)&&!recallShown.has(h.id)){const bc=BANDC[Math.min(3,h.lv-3)];ov.append(boxEl(hb,'hc',{style:`left:${pct(hb[0])};top:${pct(hb[1])};width:${pct(Math.max(hb[2],.12))};height:${pct(hb[3])};box-shadow:inset 0 -4px 0 ${bc},inset 0 0 0 1.5px #4fb06c`,title:'눌러서 확인',onclick:()=>{recallShown.add(h.id);for(const b of blanksInHead(h))opened.add(b.id);renderPage(i);renderTree();updateSub()}}));continue}
-    if(U.band&&h.lv>=3&&!U.pageImg[sk(i)])ov.append(boxEl(hb,'band lv'+Math.min(4,h.lv-2)));   /* 교체한 쪽은 PDF에 목차 형광펜이 이미 칠해져 있어 겹쳐 그리지 않는다 */
+    if(U.band&&h.lv>=3&&!U.pageImg[sk(i)])ov.append(boxEl(hb,'band lv'+Math.min(4,h.lv-2)));
+    if(U.band&&h.lv>=3&&!U.pageImg[sk(i)]&&h.r2)for(const r of h.r2)ov.append(boxEl([r[0]-.0015,r[1]-.001,r[2]+.003,r[3]+.002],'band lv'+Math.min(4,h.lv-2)));   /* 두 줄 제목의 둘째 줄 */   /* 교체한 쪽은 PDF에 목차 형광펜이 이미 칠해져 있어 겹쳐 그리지 않는다 */
     if(has('recall')&&recallable(h)&&recallShown.has(h.id))ov.append(boxEl(hb,'',{style:`left:${pct(hb[0])};top:${pct(hb[1])};width:${pct(hb[2])};height:${pct(hb[3])};cursor:pointer;z-index:2`,title:'다시 가리기',onclick:ev=>{ev.stopPropagation();recallShown.delete(h.id);for(const b of blanksInHead(h))opened.delete(b.id);renderPage(i);renderTree();updateSub()}}));
   }
   // 판례 표시 (쟁점·사실·결론)
@@ -1671,18 +1672,19 @@ async function loadRounds(){
   let off=0;
   parts.forEach((R,ri)=>{const rk=RK[ri];const pre=rk===LEG?'':rk+':';const P=x=>x==null||!pre?x:pre+x;
     const part=String(R.range||'').split(' (')[0]||R.title;const Q=q=>(typeof q==='number'&&rk!==LEG)?parseInt(rk.slice(1),10)*1000+q:q; /* 2편부터는 문항 번호가 1편과 겹치지 않게 */
+    const QR=(q,qr)=>typeof q!=='number'?q:qr===LEG?q:parseInt(qr.slice(1),10)*1000+q; /* 다른 편 묶음의 쪽지 문항에 거는 빈칸·답 범위(qr:'r03' 등) */
     R.pages.forEach(pg=>M.pages.push({...pg,i:pg.i+off,src:'pages/'+rk+'/p'+String(pg.i).padStart(2,'0')+'.jpg',round:rk}));
     for(const k of ['heads','blanks','links','dumunja','stats','caseMarks','proseMarks'])for(const x of (R[k]||[])){
       const y={...x,id:P(x.id),p:x.p+off};
       if(k==='links'&&y.h)y.h=P(y.h);if(k==='dumunja'&&y.cue)y.cue=P(y.cue);if(typeof y.tp==='number')y.tp+=off;
       if(Array.isArray(y.t))y.t=y.t.map(t=>({...t,p:t.p+off}));if(Array.isArray(y.ans))y.ans=y.ans.map(a=>({...a,p:a.p+off}));
-      if(k==='blanks')y.q=Q(y.q);
+      if(k==='blanks')y.q=x.qr?QR(x.q,x.qr):Q(y.q);
       M[k].push(y)}
     for(const q of (R.search||[]))M.search.push([q[0]+off,...q.slice(1)]);
     for(const [k,v] of Object.entries(R.maps||{}))M.maps[P(k)]=v;
     (R.scholars||[]).forEach(g=>{M.scholars=M.scholars||[];M.scholars.push({...g,part,items:g.items.map(it=>({...it,p:it.p.map(x=>x+off)}))})});
-    if(R.quiz){M.quiz=M.quiz||{title:R.quiz.title,items:[]};R.quiz.items.forEach(it=>M.quiz.items.push({...it,q:Q(it.q),no:it.q,part,qt:R.quiz.title,key:(pre||'')+it.q,dir:'quiz/'+rk+'/'}))}
-    (R.qspans||[]).forEach(sp=>{M.qspans=M.qspans||[];M.qspans.push({...sp,q:Q(sp.q),p:sp.p+off})});
+    if(R.quiz){M.quiz=M.quiz||{title:R.quiz.title,items:[]};R.quiz.items.forEach(it=>M.quiz.items.push({...it,q:Q(it.q),no:it.q,part:R.quiz.part||part,qt:R.quiz.title,key:(pre||'')+it.q,dir:'quiz/'+rk+'/'}))}
+    (R.qspans||[]).forEach(sp=>{M.qspans=M.qspans||[];M.qspans.push({...sp,q:sp.qr?QR(sp.q,sp.qr):Q(sp.q),p:sp.p+off})});
     M.rounds.push({key:rk,title:R.title,part,range:R.range,exam:R.exam,start:off,n:R.pages.length});
     off+=R.pages.length});
   const f=M.rounds[0],l=M.rounds[M.rounds.length-1];

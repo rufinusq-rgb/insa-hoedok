@@ -5,3 +5,10 @@
 순서: extract_hl.py(목차 형광펜 사각형 꺼내기) → build.py --img(쪽 그림·OCR 줄·글자 경계·목차) → blanks.py(쪽지시험 답 키워드 위치) → finish.py(rNN.json 완성, 쪽지시험 해설 그림) → zip.
 
 주의: 플렉슬에서 한 글자만 톡 찍은 형광펜(두문자 표시 등)은 길이 0인 선이라 렌더러가 그리지 않는다. build.py가 아주 짧은 선으로 바꿔서 그린다. 새 편을 만들 때 이 부분을 빼지 말 것.
+
+## 3편부터: tools/round (공통) + tools/rNN/finish.py (편별 설정)
+1. `python3 tools/round/build.py <편 PDF> rNN <첫 쪽 번호> "제N편 제목" --img` → /home/claude/work/rNN/pkg 에 쪽 그림·rNN_words.json·stage1.json
+2. `python3 tools/rNN/finish.py` → rNN.json(목차 다듬기·두 줄 제목 r2·빈칸·답 범위·쪽지·학자) + 해설 그림
+3. `cd /home/claude/work/rNN/pkg && zip -qr -0 ../교재_rNN.zip data pages quiz`
+- 쪽지 문항의 답이 다른 편 쪽에 있으면 빈칸·답 범위에 qr:'r03' 처럼 문항이 속한 편을 적는다(4회차 4~7번 → 4편 쪽).
+- quiz.part 를 적으면 문항 이름이 「4회차 6번」처럼 나온다(없으면 「제2편 1번」).
