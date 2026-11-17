@@ -1,0 +1,46 @@
+# 5편 추가 시험: 기록(내 빈칸·핵심 빈칸, 없는 1편 기록 포함) 보존, 6회차 문항, 목차·학자, 새로고침 뒤 보존
+# 필요: /home/claude/test/test_r05rec.zip = 교재_r05.zip + backup.json(r01·r05 쪽 내 빈칸·핵심 빈칸)
+import asyncio,json
+from playwright.async_api import async_playwright
+B='http://localhost:8765/insa-hoedok/'
+SNAP="JSON.stringify({add:U.add,ov:U.ov,res:U.res,qres:U.qres})"
+async def main():
+    async with async_playwright() as p:
+        b=await p.chromium.launch(executable_path='/usr/bin/google-chrome',args=['--no-sandbox'])
+        ctx=await b.new_context(viewport={'width':1400,'height':1000}); page=await ctx.new_page()
+        errs=[];page.on('pageerror',lambda e:errs.append(str(e)))
+        page.on('dialog',lambda d:asyncio.ensure_future(d.accept()))
+        await page.goto(B+'index.html#stay'); await page.wait_for_timeout(800)
+        await page.set_input_files('#zipIn','/home/claude/test/test_r05rec.zip')
+        await page.wait_for_selector('.pb button',timeout=90000); await page.click('.pb button'); await page.wait_for_timeout(1500)
+        print('index rows',await page.evaluate("[...document.querySelectorAll('#ctRows .row')].map(r=>r.innerText.replace(/\\n/g,' '))"))
+        await page.goto(B+'app.html'); await page.wait_for_timeout(6000)
+        print('rounds',await page.evaluate("D.rounds.map(r=>[r.key,r.part,r.title,r.start,r.n])"),'label',await page.inner_text('#rangeLbl'))
+        snapA=await page.evaluate(SNAP)
+        print('add.blanks ids',await page.evaluate("U.add.blanks.map(b=>b.id+':'+b.rk+':'+b.lp)"))
+        print('visible mine/core',await page.evaluate("items('blanks').filter(b=>b.mine||b.core).map(b=>b.id+'@'+pageLabel(b.p))"))
+        print('blanks by q',await page.evaluate("JSON.stringify(D.blanks.map(b=>b.q).reduce((a,q)=>(a[q]=(a[q]||0)+1,a),{}))"))
+        print('qspans by q',await page.evaluate("JSON.stringify(D.qspans.map(s=>s.q+'@'+pageLabel(s.p)))"))
+        print('quiz',await page.evaluate("D.quiz.items.map(i=>qLbl(i.q)+'/'+i.key).join(', ')"))
+        print('heads lv0-2',await page.evaluate("D.heads.filter(h=>h.lv<=2).map(h=>pageLabel(h.p)+' '+h.lv+' '+h.t)"))
+        for lab in ['195','221','252','263']:
+            i=await page.evaluate(f"D.pages.findIndex(p=>p.label==='{lab}')")
+            await page.evaluate(f"jumpTo({i},0.3)"); await page.wait_for_timeout(1500)
+            await page.screenshot(path=f'/home/claude/test/s5_{lab}.png')
+        await page.evaluate("openQuiz()"); await page.wait_for_timeout(1200); await page.screenshot(path='/home/claude/test/s5_quiz.png')
+        await page.evaluate("openQuiz(5004)"); await page.wait_for_timeout(1200); await page.click('#sheet >> text=답 보기'); await page.wait_for_timeout(900); await page.screenshot(path='/home/claude/test/s5_quiz4.png')
+        await page.evaluate("$('#sheet').hidden=true")
+        await page.evaluate("setSide('sc')"); await page.wait_for_timeout(600); await page.screenshot(path='/home/claude/test/s5_sc.png')
+        await page.evaluate("setSide('toc')")
+        i=await page.evaluate("D.pages.findIndex(p=>p.label==='230')")
+        await page.evaluate("setMode('blank')"); await page.evaluate("setMK('mine')"); await page.wait_for_timeout(2500)
+        await page.evaluate(f"jumpTo({i},0.5)"); await page.wait_for_timeout(1500)
+        pt=await page.evaluate(f"(()=>{{const w=wordsOf({i}).find(w=>w[1]>0.5&&w[2]>0.05);const r=PG[{i}].box.getBoundingClientRect();return [r.left+(w[0]+w[2]/2)*r.width,r.top+(w[1]+w[3]/2)*r.height]}})()")
+        await page.mouse.click(pt[0],pt[1]); await page.wait_for_timeout(800)
+        print('new mine:',await page.evaluate("JSON.stringify(U.add.blanks.slice(-1)[0]).slice(0,160)"))
+        await page.evaluate("setMK(false)"); await page.wait_for_timeout(2500)
+        await page.reload(); await page.wait_for_timeout(6000)
+        print('reload add.blanks',await page.evaluate("U.add.blanks.map(b=>b.id.slice(0,6)+':'+b.rk+':'+b.lp)"))
+        print('errors',errs)
+        await b.close()
+asyncio.run(main())

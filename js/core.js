@@ -11,7 +11,8 @@ const CFG = {
     {key:'r01', title:'제1편', file:'교재_r01.zip'},
     {key:'r02', title:'제2편', file:'교재_r02.zip'},
     {key:'r03', title:'제3편', file:'교재_r03.zip'},
-    {key:'r04', title:'제4편', file:'교재_r04.zip'}
+    {key:'r04', title:'제4편', file:'교재_r04.zip'},
+    {key:'r05', title:'제5편', file:'교재_r05.zip'}
   ],
   CONTENT_CACHE: 'insa-content-v1'
 };
