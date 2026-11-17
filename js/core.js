@@ -234,9 +234,12 @@ const Sync = {
     // 다른 기기가 그사이 드라이브에 더 새 기록을 올렸으면 덮어쓰지 않는다
     const cur = await Drive.find(Sync.LATEST);
     const pushedAt = (await Local.meta.get('pushedAt')) || 0;
-    if(cur && pushedAt && Date.parse(cur.modifiedTime) > pushedAt + 15000){
+    // (기기 시계가 드라이브 시계와 조금 달라도 놓치지 않게 2분 여유를 두고 읽어 본다)
+    // 드라이브 기록이 이 기기가 마지막으로 올리거나 받은 것(pushedT)보다 새것이면, 이 기기가 아직 못 본 작업이 있다는 뜻 → 덮지 않는다
+    if(cur && pushedAt && Date.parse(cur.modifiedTime) > pushedAt - 120000){
       const remote = JSON.parse(await Drive.readText(cur.id));
-      if(remote && remote.t > snap.t){
+      const pushedT = (await Local.meta.get('pushedT')) || 0;
+      if(remote && remote.t > pushedT && remote.t !== snap.t){
         await Drive.saveText('기록_충돌보관_' + stamp() + '_' + Date.now() + '.json', JSON.stringify(snap));
         const e = new Error('다른 기기에서 저장한 더 새 기록이 드라이브에 있습니다. 첫 화면에서 다시 열어 주세요. (이 기기 기록은 드라이브에 따로 보관했습니다)');
         e.code = 'conflict'; throw e;
@@ -262,7 +265,8 @@ const Sync = {
     const remote = JSON.parse(await Drive.readText(f.id));
     if(!remote || remote.app !== 'insa-hoedok' || !remote.docs) return {action:'bad'};
     const pushedT = (await Local.meta.get('pushedT')) || 0;
-    if(remote.t <= lt) return {action:'push'};                       // 기기 쪽이 같거나 새것
+    // 드라이브에 이 기기가 아직 못 본 작업이 없으면 기기 쪽을 올린다. (한 번도 주고받지 않은 기기는 예전처럼 시각 비교)
+    if(pushedT ? remote.t <= pushedT : remote.t <= lt) return {action:'push'};
     if(Object.keys(local).length && lt > pushedT){                   // 양쪽 다 바뀜: 기기 쪽을 따로 보관
       await Drive.saveText('기록_충돌보관_' + stamp() + '_' + Date.now() + '.json', JSON.stringify({app:'insa-hoedok', v:1, t:lt, saved:new Date().toISOString(), docs:local}));
     }
