@@ -902,7 +902,7 @@ function renderTree(){
   /* 편 바로가기: 목차 맨 위 한 줄. 기기에 들어 있는 편만 번호로 보인다 */
   const ps=[],seen=new Set();for(const h of heads()){if(h.lv!==0)continue;const m=String(h.t).match(/^제\s*(\d+)\s*편/);if(!m||seen.has(m[1]))continue;seen.add(m[1]);ps.push({n:m[1],h})}
   if(ps.length>1){let cp=CUR?CUR.p:null;try{const vp=visiblePages();if(vp.length)cp=Math.max(...vp)}catch(e){}let on=null;if(cp!=null)for(const x of ps)if(x.h.p<=cp)on=x.n;
-    t.append(el('div',{class:'pjump'},el('span',{class:'pl'},'편'),...ps.map(x=>el('button',{class:x.n===on?'on':'',title:x.h.t,onclick:()=>{collapsed.delete(x.h.id);{const v=$('#viewer');v.scrollTo({top:Math.max(0,PG[x.h.p].box.offsetTop-90),behavior:'auto'})}if(window.innerWidth<=820)$('#side').classList.remove('open');
+    t.append(el('div',{class:'pjump'},el('span',{class:'pl'},'편'),...ps.map(x=>el('button',{class:x.n===on?'on':'',title:x.h.t,onclick:()=>{NOFOLLOW=Date.now()+1800;collapsed.delete(x.h.id);{const v=$('#viewer');v.scrollTo({top:Math.max(0,PG[x.h.p].box.offsetTop-90),behavior:'auto'})}if(window.innerWidth<=820)$('#side').classList.remove('open');
       setTimeout(()=>{const r=[...document.querySelectorAll('#tree .node')].find(e=>e.dataset.hid===x.h.id);if(r){const T=$('#tree');T.scrollTop+=r.getBoundingClientRect().top-T.getBoundingClientRect().top-34}},600)}},x.n))))}
   draw(buildTree(),t);
 }
@@ -918,9 +918,13 @@ let scT;$('#viewer').addEventListener('scroll',()=>{clearTimeout(scT);scT=setTim
   const v=$('#viewer');const mid=v.scrollTop+120;let p=0;for(let i=0;i<PG.length;i++){if(PG[i].box.offsetTop<=mid)p=i;else break}while(p>0&&PG[p-1].box.offsetTop===PG[p].box.offsetTop)p--;
   const box=PG[p].box;const y=(mid-box.offsetTop)/box.offsetHeight;const h=sectionAt(p,y);
   {const vk=visiblePages().join(',');if((has('blank')||has('recall'))&&vk!==LASTUNIT){LASTUNIT=vk;updateSub()}}
-  if(h&&(!CUR||h.id!==CUR.id)){CUR=h;renderCur();$$('.node.on').forEach(n=>n.classList.remove('on'));renderTreeActive()}
+  if(h&&(!CUR||h.id!==CUR.id)){CUR=h;renderCur();$$('.node.on').forEach(n=>n.classList.remove('on'));renderTreeActive(true)}
 },120)},{passive:true});
-function renderTreeActive(){if($('#q').value.trim())return;renderTree()}
+function renderTreeActive(follow){if($('#q').value.trim())return;renderTree();if(follow)followTree()}
+/* 목차 따라가기: 읽는 곳(지금 보는 곳)이 바뀌면 목차도 그 줄이 보이게 옮긴다. 편 버튼을 누른 직후에는 편 제목 줄을 맨 위에 두려고 잠깐 쉰다 */
+let NOFOLLOW=0;
+function followTree(){if(SIDE!=='toc'||Date.now()<NOFOLLOW)return;const T=$('#tree');const r=T.querySelector('.node.on');if(!r)return;const tr=T.getBoundingClientRect(),rr=r.getBoundingClientRect();if(!tr.height)return;
+  if(rr.top<tr.top+40||rr.bottom>tr.bottom-30)T.scrollTop+=rr.top-tr.top-tr.height*0.3}
 
 /* ---------- 학자 ---------- */
 let SCH='all';const SCH_OPEN=new Set();
