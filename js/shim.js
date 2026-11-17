@@ -6,7 +6,7 @@ const {Local, Drive, Sync, CFG} = window.INSA;
 const BASE = new URL('./', location.href).href;
 
 /* ---------- 드라이브 저장 상태 표시 + 자동 올리기 ---------- */
-let dirty = false, timer = null, pushing = false, lastOk = 0, lastErr = '', shrink = null, leaving = false;
+let dirty = false, timer = null, pushing = false, lastOk = 0, lastErr = '', shrink = null, leaving = false, hold = false;
 const pill = document.createElement('button');
 pill.id = 'cloudPill'; pill.type = 'button';
 pill.style.cssText = 'position:fixed;left:8px;bottom:calc(8px + env(safe-area-inset-bottom,0px));z-index:99999;font:12px/1.2 system-ui,sans-serif;' +
@@ -17,6 +17,7 @@ function paint(){
   if(!Drive.configured()){ txt = '☁ 기기에만 저장 중'; warn = true; }
   else if(pushing) txt = '☁ 드라이브에 저장 중…';
   else if(shrink){ txt = '⚠ ' + shrink.what + '로 줄어 저장 멈춤 · 눌러서 확인'; warn = true; }
+  else if(hold){ txt = '⚠ 다른 기기 새 기록 있음 · 눌러서 받기'; warn = true; }
   else if(!Drive.token() && (dirty || !lastOk)){ txt = '☁ 드라이브 연결하기 (눌러 주세요)'; warn = true; }
   else if(lastErr && dirty){ txt = '☁ 저장 못함 · 눌러서 다시'; warn = true; }
   else if(dirty) txt = '☁ 곧 드라이브에 저장';
@@ -43,6 +44,7 @@ async function push(opt){
 }
 function schedule(){ dirty = true; paint(); clearTimeout(timer); timer = setTimeout(push, 5000); }
 pill.addEventListener('click', async () => {
+  if(hold){ hold = false; sessionStorage.removeItem('insa:pullHops'); if(!Drive.token()){ try{ await Drive.connect(); }catch(e){ alert(e.message); return; } } await checkRemote(true, true); paint(); return; }
   if(shrink){
     if(confirm(shrink.what + '로 줄었습니다.\n\n직접 지운 게 맞으면 [확인] → 지금 상태를 드라이브에 저장합니다.\n모르는 사이에 줄었다면 [취소] → 드라이브는 줄기 전 상태로 둡니다. 그다음 클로드에게 알려 주세요.')){
       if(!Drive.token()){ try{ await Drive.connect(); }catch(e){ alert(e.message); return; } }
@@ -64,16 +66,17 @@ window.addEventListener('pagehide', () => { try{ if(typeof Store !== 'undefined'
 setInterval(() => { if(dirty && !pushing) push(); else paint(); }, 60000);
 
 /* ---------- 다른 기기 기록 확인 (태블릿·PC 번갈아 쓸 때) ----------
-   앱으로 돌아올 때(화면이 다시 보일 때, 창을 다시 누를 때), 3분마다, 드라이브를 다시 연결했을 때
+   앱으로 돌아올 때(화면이 다시 보일 때, 창을 다시 누를 때), 드라이브를 다시 연결했을 때
+   (3분마다 확인은 뺐다: 두 기기가 동시에 열려 있으면 서로 받고 저장하며 계속 새로 열렸다. 알림창도 뺐다 — 합치기가 되므로)
    드라이브의 기록_최신.json이 이 기기가 마지막으로 올리거나 받은 것보다 새것인지 본다.
    새것이면 첫 화면(index.html)으로 보내 거기서 받아 온다(Sync.pull — 처음 열 때 쓰는 것과 같은 길).
    드라이브에 올리기 직전에도 확인한다(덮어쓰기 방지). 이 기기에 아직 안 올라간 작업이 있으면 알리고 받는다:
    Sync.pull이 이 기기 기록을 기록_충돌보관_*로 드라이브에 남기고 쪽 메모·펜 필기를 mergeNote로 합친다. 앱을 다시 열 때 restoreMine이 내 빈칸·핵심 빈칸·두문자를 되살린다. */
 let checking = false, lastCheck = 0;
 async function flushAll(){ try{ if(typeof Store !== 'undefined' && Store.q) await Promise.all(Object.keys(Store.q).filter(k => !k.startsWith('_t')).map(k => Store.flush(k))); }catch(e){} }
-async function checkRemote(force){
-  if(leaving || checking || pushing || shrink || !Drive.configured() || !Drive.token()) return false;
-  if(!force && Date.now() - lastCheck < 20000) return false;   // 3분마다 확인할 때만 쉬는 간격을 둔다
+async function checkRemote(force, force2){
+  if(leaving || checking || pushing || shrink || (hold && !force2) || !Drive.configured() || !Drive.token()) return hold && !force2;
+  if(!force && Date.now() - lastCheck < 20000) return false;
   checking = true; lastCheck = Date.now();
   try{
     const f = await Drive.find(Sync.LATEST); if(!f) return false;
@@ -86,11 +89,13 @@ async function checkRemote(force){
     const lt = window.INSA.lastWrite(await Local.all());
     // 드라이브에 이 기기가 아직 못 본 작업이 있는가: 한 번이라도 주고받은 기기는 pushedT로, 처음인 기기는 기기 기록 시각으로 판단
     if(pushedT ? remote.t <= pushedT : remote.t <= lt) return false;
-    if(dirty || lt > pushedT)
-      alert('다른 기기에서 저장한 더 새 기록이 드라이브에 있어서 받아 옵니다.\n\n이 기기에서 아직 드라이브에 안 올라간 작업도 받아 온 기록과 합칩니다(내 빈칸·핵심 빈칸·두문자·메모, 펜 필기는 더 나중에 고친 쪽). 합치기 전 이 기기 기록은 드라이브에 「기록_충돌보관」 파일로도 남깁니다.');
+    // 되풀이 막기: 2분 안에 세 번 넘게 받으러 가면 멈추고 알약으로 확인받는다(두 기기가 동시에 열려 서로 저장하는 경우)
+    const hops = JSON.parse(sessionStorage.getItem('insa:pullHops') || '[]').filter(x => Date.now() - x < 120000);
+    if(hops.length >= 3 && !force2){ hold = true; paint(); return true; }
+    hops.push(Date.now()); sessionStorage.setItem('insa:pullHops', JSON.stringify(hops));
     leaving = true; clearTimeout(timer); dirty = false;
     try{ if(typeof Store !== 'undefined') Store.blocked = true; }catch(e){}
-    pill.textContent = '☁ 다른 기기의 새 기록을 받아 오는 중…'; 
+    pill.textContent = '☁ 다른 기기의 새 기록을 받아 오는 중…';
     location.replace('index.html');
     return true;
   }catch(e){ console.warn('check remote', e); return false; }
@@ -98,7 +103,6 @@ async function checkRemote(force){
 }
 document.addEventListener('visibilitychange', () => { if(document.visibilityState === 'visible') setTimeout(() => checkRemote(true), 400); });
 window.addEventListener('focus', () => setTimeout(() => checkRemote(true), 400));
-setInterval(() => { if(document.visibilityState === 'visible' && !dirty) checkRemote(); }, 180000);
 setTimeout(() => checkRemote(true), 3000);
 function mount(){ if(!document.body){ setTimeout(mount, 50); return; } document.body.appendChild(pill); paint(); }
 mount();
