@@ -191,6 +191,7 @@ body.noside #back{left:calc(16px + env(safe-area-inset-left,0px))}
 .node.on{background:var(--accent-soft)}
 .node .tw{width:16px;flex:none;color:var(--ink-3);font-size:10px;padding-top:3px;text-align:center;border:0;background:none}
 .node .tt{flex:1;min-width:0}
+.exq{font-size:10px;line-height:1.3;color:#b0956b;padding:3px 6px 0 26px;cursor:pointer;font-weight:600;letter-spacing:.02em}
 .node .pg{color:var(--ink-3);font-size:11px;font-variant-numeric:tabular-nums;padding-top:1px}
 .node .rd{font-size:10px;color:var(--ok);border:1px solid var(--ok);border-radius:99px;padding:0 5px;margin-top:2px}
 .node[data-lv="0"] .tt,.node[data-lv="1"] .tt{font-weight:600}
@@ -876,6 +877,14 @@ function jumpTo(p,y=0,flash=false,fr=null){
 }
 
 /* ---------- tree ---------- */
+/* 예시문제 표시: OCR 줄 「예시문제」 바로 뒤의 첫 목차(Ⅰ / 1. / ① 로 시작) 위에 목차에서 작은 「예시문제」 줄을 보여 준다.
+   목차 구조·띠·기록은 바꾸지 않는다(화면 표시만). 「예시문제」 글자가 없는 답안(기출 답안 등)은 잡히지 않는다. */
+function markExq(){
+  const hs=(D.heads||[]).slice().sort((a,b)=>a.p-b.p||a.y-b.y);hs.forEach(h=>{delete h.exq});
+  const mk=(D.search||[]).filter(q=>/^예시문제/.test(String(q[5]))&&String(q[5]).length<=8);
+  for(const q of mk){const h=hs.find(h=>h.p>q[0]||(h.p===q[0]&&h.y>q[2]));
+    if(h&&h.lv>=3&&h.p<=q[0]+1&&/^(Ⅰ|I\s*\.|1\s*\.|①)/.test(h.t)&&!h.exq)h.exq={p:q[0],y:q[2]}}
+}
 function buildTree(){
   const hs=heads();const root={kids:[],lv:-1};const st=[root];
   for(const h of hs){const n={h,kids:[]};while(st.length>1&&st[st.length-1].h.lv>=h.lv)st.pop();st[st.length-1].kids.push(n);st.push(n)}
@@ -897,6 +906,7 @@ function renderTree(){
       h.lv>=3?el('span',{class:'mk lv'+Math.min(4,h.lv-2)}):el('span',{class:'mk'}),
       el('span',{class:'tt'+(hide?' hidden-t':'')},hide?h.t.replace(/./g,'＿').slice(0,12):h.t),
       el('span',{class:'pg'},/^\d/.test(D.pages[h.p].label)?D.pages[h.p].label.split(' ')[0]:''));
+    if(h.exq)into.append(el('div',{class:'exq',onclick:()=>jumpTo(h.exq.p,Math.max(0,h.exq.y-.01))},'예시문제'));
     into.append(row);
     if(hasK&&!col){const k=el('div',{class:'kids'});into.append(k);draw(n.kids,k)}}};
   /* 편 바로가기: 목차 맨 위 한 줄. 기기에 들어 있는 편만 번호로 보인다 */
@@ -1715,6 +1725,7 @@ function normU(u){const b={ov:{blanks:{},heads:{},links:{},dumunja:{},stats:{},p
 function applyU(){applyMenu();applyEye();$('#bandBtn').setAttribute('aria-pressed',String(U.band));$('#kwBtn').setAttribute('aria-pressed',String(U.kw!==false));$('#stBtn').setAttribute('aria-pressed',String(U.st!==false));$('#cmBtn').setAttribute('aria-pressed',String(U.cm!==false));$('#pmBtn').setAttribute('aria-pressed',String(U.pm!==false));$('#qsBtn').setAttribute('aria-pressed',String(U.qs!==false));updateStatus();applyLayout(true);PG.forEach((p,i)=>{p.img.src=pageSrc(i);if(p.canvas)drawStrokes(i)});renderAll();renderTree();renderCur();updateSub()}
 (async function boot(){
   try{D=await loadRounds()}catch(e){if(window.INSA){location.replace('index.html#stay');return}throw e}
+  try{markExq()}catch(e){console.warn('markExq',e)}
   $('#rangeLbl').textContent=D.rounds.length>1?D.title:D.title+' · '+D.rounds[0].range;
   applyLayout(false);buildPages();applyLayout(false);CUR=heads()[0];renderTree();renderCur();updateSub();
   await Store.init();
