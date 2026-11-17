@@ -46,7 +46,7 @@ button:disabled{opacity:.45;cursor:default}
     <div id="ctRows"></div>
     <p class="note">교재 묶음(zip)은 처음 한 번만 넣으면 됩니다. 드라이브가 연결돼 있으면 드라이브에도 올라가서, 기기를 바꾸거나 저장공간이 비워져도 다시 받을 수 있습니다.</p>
     <button id="zipBtn" style="margin-top:8px">묶음 파일 넣기 (교재·기록 zip)</button>
-    <input type="file" id="zipIn" accept=".zip,application/zip" hidden>
+    <input type="file" id="zipIn" hidden>  <!-- accept 없음: 구글드라이브가 zip을 다른 종류(x-zip-compressed 등)로 표시하면 고를 수 없게 됨. zip이 아니면 importZip이 「넣지 못함」 --> 
     <div class="prog" id="prog" hidden><i></i></div>
   </div>
 
