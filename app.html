@@ -881,9 +881,11 @@ function jumpTo(p,y=0,flash=false,fr=null){
    목차 구조·띠·기록은 바꾸지 않는다(화면 표시만). 「예시문제」 글자가 없는 답안(기출 답안 등)은 잡히지 않는다. */
 function markExq(){
   const hs=(D.heads||[]).slice().sort((a,b)=>a.p-b.p||a.y-b.y);hs.forEach(h=>{delete h.exq});
-  const mk=(D.search||[]).filter(q=>/^예시문제/.test(String(q[5]))&&String(q[5]).length<=8);
-  for(const q of mk){const h=hs.find(h=>h.p>q[0]||(h.p===q[0]&&h.y>q[2]));
-    if(h&&h.lv>=3&&h.p<=q[0]+1&&/^(Ⅰ|I\s*\.|1\s*\.|①)/.test(h.t)&&!h.exq)h.exq={p:q[0],y:q[2]}}
+  /* OCR은 「예시문제」를 문제 글과 한 줄로 읽는 일이 많다(「예시문제제조기업의…」) → 줄 첫머리만 본다.
+     기출 답안은 「기출문제[22회…]」로 시작하고 답안이 Ⅰ로 시작할 때만(본문 속 기출 인용과 구별). */
+  const mk=(D.search||[]).map(q=>({q,t:String(q[5])})).filter(o=>/^예시문제/.test(o.t)||/^기출문제\[/.test(o.t));
+  for(const {q,t} of mk){const ex=/^예시문제/.test(t);const h=hs.find(h=>h.p>q[0]||(h.p===q[0]&&h.y>q[2]));
+    if(h&&h.lv>=3&&h.p<=q[0]+1&&(ex?/^(Ⅰ|I\s*\.|1\s*\.|①)/:/^(Ⅰ|I\s*\.)/).test(h.t)&&!h.exq)h.exq={p:q[0],y:q[2],k:ex?'예시문제':'기출문제'}}
 }
 function buildTree(){
   const hs=heads();const root={kids:[],lv:-1};const st=[root];
@@ -906,7 +908,7 @@ function renderTree(){
       h.lv>=3?el('span',{class:'mk lv'+Math.min(4,h.lv-2)}):el('span',{class:'mk'}),
       el('span',{class:'tt'+(hide?' hidden-t':'')},hide?h.t.replace(/./g,'＿').slice(0,12):h.t),
       el('span',{class:'pg'},/^\d/.test(D.pages[h.p].label)?D.pages[h.p].label.split(' ')[0]:''));
-    if(h.exq)into.append(el('div',{class:'exq',onclick:()=>jumpTo(h.exq.p,Math.max(0,h.exq.y-.01))},'예시문제'));
+    if(h.exq)into.append(el('div',{class:'exq',onclick:()=>jumpTo(h.exq.p,Math.max(0,h.exq.y-.01))},h.exq.k||'예시문제'));
     into.append(row);
     if(hasK&&!col){const k=el('div',{class:'kids'});into.append(k);draw(n.kids,k)}}};
   /* 편 바로가기: 목차 맨 위 한 줄. 기기에 들어 있는 편만 번호로 보인다 */
