@@ -67,6 +67,7 @@ button.dml{cursor:pointer}
 .dmit:hover,.dmit.on{background:rgba(56,168,255,.24)}
 .dmit .lt{flex:1;font-size:17px;font-weight:700;letter-spacing:2px;color:#0a5fa8}.dmit .pg{font-size:11px;color:var(--ink-3)}
 [data-theme="dark"] .dmit .lt{color:#8fd3ff}
+.dmit.own{background:rgba(150,220,255,.08);border-left-color:#a9e2ff}.dmit.own:hover,.dmit.own.on{background:rgba(150,220,255,.16)}.dmit.own .lt{color:#49a9db}[data-theme="dark"] .dmit.own .lt{color:#c6edff}
 .dmx{margin:2px 0 8px 22px;border:1px solid var(--line);border-radius:8px;padding:8px;display:grid;gap:8px;background:var(--panel);color:var(--ink)}
 .dmx .cue{display:flex;flex-wrap:wrap;gap:6px;align-items:center}.dmx .cue .lab{font-size:12px;color:var(--ink-3)}
 .dmxr{display:grid;gap:4px}.dmxr .h{display:flex;align-items:center;gap:6px}.dmxr .idx{width:16px;color:var(--ink-3);font-size:12px}.dmxr .sp{flex:1}.dmxr .note{font-size:11px;color:var(--ink-3)}
@@ -231,8 +232,10 @@ body.noside #back{left:calc(16px + env(safe-area-inset-left,0px))}
 #ckBtn,#coreTg{position:fixed;right:calc(10px + env(safe-area-inset-right,0px));transform:translateY(-50%);z-index:31;height:30px;padding:0 9px;border-radius:15px;border:1px solid var(--line);background:var(--panel);color:var(--ink);font-size:12px;box-shadow:var(--shadow);opacity:.88;touch-action:manipulation}
 #ckBtn{top:calc(50% - 94px)}#dmBtn{position:fixed;right:calc(10px + env(safe-area-inset-right,0px));top:calc(50% + 46px);transform:translateY(-50%);z-index:31;height:30px;padding:0 9px;border-radius:15px;border:1px solid #9fd0f2;background:var(--panel);color:#0a74c8;font-size:12px;font-weight:600;box-shadow:var(--shadow);opacity:.9;touch-action:manipulation}
 #dmBtn[aria-pressed="true"]{background:#0a74c8;color:#fff;border-color:#0a74c8;opacity:1}
+#dmBtn2{position:fixed;right:calc(10px + env(safe-area-inset-right,0px));top:calc(50% + 82px);transform:translateY(-50%);z-index:31;height:30px;padding:0 9px;border-radius:15px;border:1px solid #bfe6fb;background:var(--panel);color:#3fa9e0;font-size:12px;font-weight:600;box-shadow:var(--shadow);opacity:.9;touch-action:manipulation}
+#dmBtn2[aria-pressed="true"]{background:#6cc4f0;color:#fff;border-color:#6cc4f0;opacity:1}
 .ov.dmmode .bl,.ov.dmmode .judge,.ov.dmmode .kw,.ov.dmmode .dm,.ov.dmmode .box,.ov.dmmode .qsp,.ov.dmmode .lk{pointer-events:none}
-.dmnew{outline:2px solid #0a74c8;background:rgba(10,116,200,.22);pointer-events:none;border-radius:2px}
+.dmnew{outline:2px solid #0a74c8;background:rgba(10,116,200,.22);pointer-events:none;border-radius:2px}.dmnew.own{outline-color:#6cc4f0;background:rgba(108,196,240,.22)}.dmnum.own{background:#6cc4f0}
 .dmnum{position:absolute;transform:translate(-50%,-115%);font-size:9px;font-weight:700;color:#fff;background:#0a74c8;border-radius:6px;padding:1px 4px;pointer-events:none}#coreTg{top:calc(50% - 178px);color:#5b35b0;border-color:#c9b6f2;font-weight:600}
 #reHide{color:#c0407a!important;border-color:#f2b6cf!important;font-weight:600}
 #ckBtn[aria-pressed="true"]{background:#5b35b0;color:#fff;border-color:#5b35b0;opacity:1}
@@ -250,7 +253,7 @@ body.noside #back{left:calc(16px + env(safe-area-inset-left,0px))}
 .judge .o{background:#fff;color:#1f7a4d;border-right:1px solid #ddd}.judge .x{background:#fff;color:#b3261e}
 .lk{cursor:pointer;mix-blend-mode:multiply;background:linear-gradient(to top,rgba(40,90,220,.85) 2px,rgba(80,140,255,.16) 2px)}
 .lk:hover{background:linear-gradient(to top,rgba(40,90,220,.95) 2px,rgba(80,140,255,.30) 2px)}
-.dm{cursor:pointer;outline:2px dashed #0a74c8;outline-offset:1px;background:rgba(10,116,200,.08)}
+.dm{cursor:pointer;outline:2px dashed #0a74c8;outline-offset:1px;background:rgba(10,116,200,.08)}.dm.own{outline-color:#7fd0f7;background:rgba(127,208,247,.12)}
 .hc{z-index:2;background:#d3ecd9;box-shadow:inset 0 0 0 1.5px #2f8f55;display:flex;align-items:center;padding-left:6px;font-size:10px;line-height:1;font-weight:700;color:#1d6b3e;overflow:hidden;white-space:nowrap;border-radius:1px;cursor:pointer}
 .flash{border:3px solid #e8a100;border-radius:3px;pointer-events:none;animation:fl 2.4s ease-out forwards}
 @keyframes fl{0%{background:rgba(255,200,0,.35)}100%{background:transparent;opacity:0}}
@@ -423,7 +426,8 @@ textarea.dump{width:100%;min-height:160px;font:12px/1.4 ui-monospace,monospace;b
 <button id="reHide" title="보이는 쪽의 분홍 내 빈칸을 한 번에 열거나 닫기">빈칸 전체 열기</button>
 <button id="coreTg" title="보이는 쪽의 보라 핵심 빈칸을 한 번에 열거나 닫기">핵심 전체 열기</button>
 <button id="ckBtn" aria-pressed="false" title="핵심 빈칸 만들기·지우기">＋핵심</button>
-<button id="dmBtn" aria-pressed="false" title="두문자 만들기: 글자를 차례로 톡, 다 했으면 다시 누르기">＋두문자</button>
+<button id="dmBtn" aria-pressed="false" title="강사 두문자 만들기: 글자를 차례로 톡, 다 했으면 다시 누르기">＋두문자</button>
+<button id="dmBtn2" aria-pressed="false" title="내 두문자 만들기(연한 하늘색): 글자를 차례로 톡, 다 했으면 다시 누르기">＋내 두문자</button>
 <button id="mkBtn" aria-pressed="false" title="내 빈칸 만들기: 단어를 톡 치거나 펜으로 끌어서 빈칸 추가, 내 빈칸을 다시 치면 삭제">＋빈칸</button>
 <button id="penUndo" hidden title="방금 그은 선 지우기" aria-label="방금 그은 선 지우기">↶</button>
 <div id="zoom"><button id="zOut" aria-label="축소">−</button><span id="zLbl">100%</span><button id="zIn" aria-label="확대">+</button></div>
@@ -607,7 +611,7 @@ function renderPage(i){
     l.r.forEach((r,k)=>{if(R)ov.append(rvBox('links',l,r,k,'링크 → '+linkLabel(l)));else ov.append(boxEl(r,'lk',{title:'이어지는 부분: '+linkLabel(l),onclick:()=>followLink(l)}))})}
   // 두문자
   for(const d of items('dumunja')){const T=dmT(d);
-    T.forEach((t,k)=>{if(t.p!==i)return;if(DMB&&DMB.edit===d.id)return;if(R)ov.append(rvBox('dumunja',d,t.r,'t'+k,'두문자'+(T.length>1?' '+(k+1):'')));else if(has('quiz')||MKB==='dm')ov.append(boxEl(t.r,'dm',{title:'두문자 퀴즈',onclick:ev=>{if(ev)ev.stopPropagation();if(MKB==='dm'){if(Date.now()-MKLP<800)return;if(DMB&&DMB.t.length){toast('만들던 두문자를 먼저 「완료」해 주세요');return}dmMenu(d);return}openDm(d)}}))});
+    T.forEach((t,k)=>{if(t.p!==i)return;if(DMB&&DMB.edit===d.id)return;if(R)ov.append(rvBox('dumunja',d,t.r,'t'+k,'두문자'+(T.length>1?' '+(k+1):'')));else if(has('quiz')||MKB==='dm')ov.append(boxEl(t.r,'dm'+(d.own?' own':''),{title:'두문자 퀴즈',onclick:ev=>{if(ev)ev.stopPropagation();if(MKB==='dm'){if(Date.now()-MKLP<800)return;if(DMB&&DMB.t.length){toast('만들던 두문자를 먼저 「완료」해 주세요');return}dmMenu(d);return}openDm(d)}}))});
     if(R)(d.ans||[]).forEach((a,k)=>{if(a.p===i)ov.append(rvBox('dumunja',d,a.r,'a'+k,'풀이 '+(k+1),'k-dma'))})
   }
   // 키워드 형광펜 (읽기 계열 화면)
@@ -630,7 +634,7 @@ function renderPage(i){
       })}
   }
   if(REVSTART&&REVSTART.p===i&&!R){ov.append(el('div',{class:'rvsl',style:`left:${pct(.06)};width:${pct(.88)};top:${pct(REVSTART.y)}`}));ov.append(el('span',{class:'rvs',style:`left:${pct(.012)};top:${pct(REVSTART.y)}`,title:'누르면 해제',onclick:ev=>{ev.stopPropagation();clearStart()}},'여기부터'))}
-  if(DMB&&!R)DMB.t.forEach((t,k)=>{if(t.p!==i)return;ov.append(boxEl(t.r,'dmnew'));ov.append(el('span',{class:'dmnum',style:`left:${pct(t.r[0]+t.r[2]/2)};top:${pct(t.r[1])}`},String(k+1)))});
+  if(DMB&&!R)DMB.t.forEach((t,k)=>{if(t.p!==i)return;ov.append(boxEl(t.r,'dmnew'+(DMB.own?' own':'')));ov.append(el('span',{class:'dmnum'+(DMB.own?' own':''),style:`left:${pct(t.r[0]+t.r[2]/2)};top:${pct(t.r[1])}`},String(k+1)))});
   // 쪽지 답 범위
   if(U.qs!==false&&!R&&D.qspans){const qsUsed={};for(const sp of D.qspans){if(sp.p!==i||(typeof BQ==='number'&&BQ&&sp.q!==BQ)||BQ==='mine')continue;const x=.035;
     ov.append(el('div',{class:'qsp',style:`left:${pct(x)};top:${pct(sp.y)};height:${pct(sp.h)}`}));
@@ -1124,7 +1128,7 @@ function renderDmTab(){
       for(const g3 of g2.tp){if(g3.t!=='(주제 없음)')t.append(el('div',{class:'dmg3'},DMV.hideC?hideT(g3.t):g3.t));
         for(const d of g3.ds){const T=dmT(d);const op=DMV.open.has(d.id);
           const lt=DMV.hideL?T.map(()=>'○').join(' '):T.map(x=>dmChar(x)||'□').join(' ');
-          const row=el('div',{class:'dmit'+(op?' on':''),onclick:()=>{op?DMV.open.delete(d.id):DMV.open.add(d.id);renderTree()}},
+          const row=el('div',{class:'dmit'+(d.own?' own':'')+(op?' on':''),onclick:()=>{op?DMV.open.delete(d.id):DMV.open.add(d.id);renderTree()}},
             el('span',{class:'lt'},lt),el('span',{class:'pg'},pageLabel(T[0].p)),
             Q.order==='here'?el('button',{class:'chip',onclick:e=>{e.stopPropagation();startDeck(dmQuizList(d.id),Q.dir,{keep:true})}},'▶여기서'):null);
           t.append(row);if(op)t.append(dmDetail(d))}}}}
@@ -1275,11 +1279,15 @@ let MKB=false,WORDS=null;const MKU=[];
 let WLOAD=null,WDONE=false;function loadWords(){return WLOAD||(WLOAD=(async()=>{WORDS={};const R0=D.rounds.map(r=>r.key);let off=0;
   for(let k=0;k<R0.length;k++){try{const w=await fetch('data/'+R0[k]+'_words.json').then(x=>x.json());for(const [p,ws] of Object.entries(w))WORDS[+p+off]=ws}catch(e){}
     off+=D.rounds[k].n}WDONE=true;return WORDS})())}
-function setMK(on){if(MKB==='dm'&&on!=='dm')dmFinish();MKB=on;$('#dmBtn').setAttribute('aria-pressed',String(on==='dm'));if(on==='dm'){DMB={t:[]};$('#dmBtn').textContent='완료 (0글자)'}else $('#dmBtn').textContent='＋두문자';$('#mkBtn').setAttribute('aria-pressed',String(on==='mine'));$('#ckBtn').setAttribute('aria-pressed',String(on==='core'));if(on==='dm'){loadWords();toast('두문자 만들기: 두문자 글자를 순서대로 하나씩 톡. 다 골랐으면 「완료」를 누르세요. 만든 두문자 글자를 톡 하면 그 두문자를 지웁니다.',5000)}else if(on){loadWords();const nm=on==='core'?'핵심 빈칸(보라)':'내 빈칸(분홍)';toast(nm+' 만들기: 단어 톡 = 단어, 길게 누르기 = 한 글자, 펜으로 끌기 = 원하는 만큼. 같은 종류 빈칸을 다시 치면 삭제. 다 했으면 버튼을 다시 누르세요.',4500)}
+/* 두문자 두 종류: 강사 두문자(예전부터 있던 것, 진한 하늘색) / 내 두문자(own:1, 연한 하늘색). 버튼도 둘. */
+function dmBtnEl(){return DMB&&DMB.own?$('#dmBtn2'):$('#dmBtn')}
+function dmBtnSync(){const a=MKB==='dm',o=!!(DMB&&DMB.own);const A=$('#dmBtn'),B=$('#dmBtn2');A.setAttribute('aria-pressed',String(a&&!o));B.setAttribute('aria-pressed',String(a&&o));A.hidden=a&&o;B.hidden=a&&!o;if(!a||o)A.textContent='＋두문자';if(!a||!o)B.textContent='＋내 두문자'}
+function setMK(on,own){if(MKB==='dm'&&on!=='dm')dmFinish();MKB=on;if(on==='dm'){DMB={t:[],own:!!own};dmBtnSync();dmBtnEl().textContent='완료 (0글자)'}else dmBtnSync();$('#mkBtn').setAttribute('aria-pressed',String(on==='mine'));$('#ckBtn').setAttribute('aria-pressed',String(on==='core'));if(on==='dm'){loadWords();toast('두문자 만들기: 두문자 글자를 순서대로 하나씩 톡. 다 골랐으면 「완료」를 누르세요. 만든 두문자 글자를 톡 하면 그 두문자를 지웁니다.',5000)}else if(on){loadWords();const nm=on==='core'?'핵심 빈칸(보라)':'내 빈칸(분홍)';toast(nm+' 만들기: 단어 톡 = 단어, 길게 누르기 = 한 글자, 펜으로 끌기 = 원하는 만큼. 같은 종류 빈칸을 다시 치면 삭제. 다 했으면 버튼을 다시 누르세요.',4500)}
   PG.forEach((p,i)=>{if(on)ensureCanvas(i)});renderAll();updateSub()}
 $('#mkBtn').addEventListener('click',e=>{e.stopPropagation();setMK(MKB==='mine'?false:'mine')});
 $('#ckBtn').addEventListener('click',e=>{e.stopPropagation();setMK(MKB==='core'?false:'core')});
 $('#dmBtn').addEventListener('click',e=>{e.stopPropagation();setMK(MKB==='dm'?false:'dm')});
+$('#dmBtn2').addEventListener('click',e=>{e.stopPropagation();setMK(MKB==='dm'?false:'dm',true)});
 const BULK=new Set();// 전체 열기로 연 빈칸: 맞음·틀림 안 띄움
 function visKind(mine){const vis=visiblePages();return items('blanks').filter(b=>!!b.mine===mine&&vis.includes(b.p)&&inBQ(b))}
 function visCore(){return visKind(false)}
@@ -1307,7 +1315,7 @@ function mkTap(i,pt){if(MKB==='dm'){dmTap(i,pt);return}if(!WORDS){toast('글자 
 let MKLP=0;
 function mkChar(i,pt){MKLP=Date.now();if(MKB==='dm'){dmTap(i,pt);return}if(!WORDS)return;if(ownAt(i,pt)){toast('이미 빈칸입니다. 톡 치면 지워집니다');return}const w=wordAt(i,pt);if(!w){toast('글자 위를 길게 눌러 주세요');return}const k=cIdx(w,pt[0]);try{navigator.vibrate&&navigator.vibrate(15)}catch(e){}mkAdd(i,lineRects([clipW(w,k,k+1)]))}
 function mkRange(i,a,b){if(!WORDS)return;if(MKB==='dm'){const rs=lineRects(rangeWords(i,a,b));if(rs.length)dmAddLetter(i,rs[0]);return}mkAdd(i,lineRects(rangeWords(i,a,b)))}
-function mkUndo(){if(MKB==='dm'&&DMB&&DMB.t.length){const t=DMB.t.pop();$('#dmBtn').textContent='완료 ('+DMB.t.length+'글자)';renderPage(t.p);return}const u=MKU.pop();if(!u){toast('되돌릴 것이 없습니다');return}
+function mkUndo(){if(MKB==='dm'&&DMB&&DMB.t.length){const t=DMB.t.pop();dmBtnEl().textContent='완료 ('+DMB.t.length+'글자)';renderPage(t.p);return}const u=MKU.pop();if(!u){toast('되돌릴 것이 없습니다');return}
   if(u.dmAdd){const k=U.add.dumunja.findIndex(x=>x.id===u.dmAdd);if(k>=0){U.add.dumunja.splice(k,1);saveU();renderAll()}updateSub();return}
   if(u.dmEdit){const e=u.dmEdit;if(e.ov){if(e.oldOv)U.ov.dumunja[e.id]=e.oldOv;else delete U.ov.dumunja[e.id]}else{const k=U.add.dumunja.findIndex(x=>x.id===e.id);if(k>=0)U.add.dumunja[k]=e.old;else U.add.dumunja.push(e.old)}saveU();renderAll();updateSub();return}
   if(u.dmDel&&!u.dmDel.mine){if(U.ov.dumunja[u.dmDel.id]){delete U.ov.dumunja[u.dmDel.id].del;if(!Object.keys(U.ov.dumunja[u.dmDel.id]).length)delete U.ov.dumunja[u.dmDel.id]}saveU();renderAll();updateSub();return}
@@ -1323,11 +1331,11 @@ function openMine(){const body=el('div',{class:'sb'});const ms=items('blanks').f
 
 /* ---------- 두문자 직접 만들기 ---------- */
 let DMB=null;
-function dmMenu(d){MKLP=Date.now();const body=el('div',{class:'sb'},el('p',{},(d.mine?'직접 만든 두문자':'교재 두문자')+' · '+dmT(d).length+'글자'+(d.cue?' · 주제: '+((heads().find(h=>h.id===d.cue)||{}).t||'').slice(0,24):'')),
+function dmMenu(d){MKLP=Date.now();const body=el('div',{class:'sb'},el('p',{},(d.own?'내 두문자':'강사 두문자')+' · '+dmT(d).length+'글자'+(d.cue?' · 주제: '+((heads().find(h=>h.id===d.cue)||{}).t||'').slice(0,24):'')),
   el('p',{style:'color:#666;font-size:13px'},'「글자 고치기」를 누르면 지금 글자들이 선택된 채로 열립니다. 뺄 글자는 다시 톡, 넣을 글자는 새로 톡 한 뒤 「완료」를 누르세요.'));
   let close;
-  close=sheet('두문자 고치기',body,[el('button',{class:'tb',onclick:()=>{close();dmStartEdit(d)}},'글자 고치기'),el('button',{class:'tb',style:'color:#c0392b',onclick:()=>{close();remove('dumunja',d.id);MKU.push({dmDel:d});saveU();renderAll();updateSub();toast('두문자를 지웠습니다 (↶로 되돌리기)')}},'지우기')])}
-function dmStartEdit(d){DMB={t:dmT(d).map(t=>({p:t.p,r:t.r.slice(),...(t.c?{c:t.c}:{}),...(t.a?{a:t.a}:{})})),edit:d.id,mine:!!d.mine};$('#dmBtn').textContent='완료 ('+DMB.t.length+'글자)';
+  close=sheet('두문자 고치기',body,[el('button',{class:'tb',onclick:()=>{close();dmStartEdit(d)}},'글자 고치기'),el('button',{class:'tb',onclick:()=>{close();patch('dumunja',d.id,{own:d.own?null:1});renderAll();renderTree();toast(d.own?'강사 두문자로 바꿨습니다':'내 두문자로 바꿨습니다')}},d.own?'강사 두문자로 바꾸기':'내 두문자로 바꾸기'),el('button',{class:'tb',style:'color:#c0392b',onclick:()=>{close();remove('dumunja',d.id);MKU.push({dmDel:d});saveU();renderAll();updateSub();toast('두문자를 지웠습니다 (↶로 되돌리기)')}},'지우기')])}
+function dmStartEdit(d){DMB={t:dmT(d).map(t=>({p:t.p,r:t.r.slice(),...(t.c?{c:t.c}:{}),...(t.a?{a:t.a}:{})})),edit:d.id,mine:!!d.mine,own:!!d.own};dmBtnSync();dmBtnEl().textContent='완료 ('+DMB.t.length+'글자)';
   [...new Set(DMB.t.map(t=>t.p))].forEach(renderPage);toast('고치는 중: 뺄 글자는 톡, 넣을 글자는 새로 톡. 끝나면 「완료」',4000)}
 function dmSaveEdit(B){const pages=new Set(B.t.map(t=>t.p));const it=items('dumunja').find(x=>x.id===B.edit);if(it)dmT(it).forEach(t=>pages.add(t.p));
   if(B.t.length<2){toast('두 글자 이상이어야 해서 고치지 않았습니다 (지우려면 「지우기」)',3500);pages.forEach(renderPage);return}
@@ -1342,20 +1350,20 @@ document.addEventListener('click',e=>{if(MKB!=='dm'||!DMB)return;const t=e.targe
 function dmUserAt(i,pt){return items('dumunja').find(d=>dmT(d).some(t=>t.p===i&&pt[0]>=t.r[0]-.004&&pt[0]<=t.r[0]+t.r[2]+.004&&pt[1]>=t.r[1]-.004&&pt[1]<=t.r[1]+t.r[3]+.004))}
 function dmTap(i,pt){if(!WORDS){toast('글자 위치를 불러오는 중입니다. 잠시 뒤 다시 눌러 주세요');return}
   if(!DMB.t.length){const ex=dmUserAt(i,pt);if(ex){dmMenu(ex);return}}
-  {const hit=DMB.t.findIndex(t=>t.p===i&&pt[0]>=t.r[0]-.003&&pt[0]<=t.r[0]+t.r[2]+.003&&pt[1]>=t.r[1]-.003&&pt[1]<=t.r[1]+t.r[3]+.003);if(hit>=0){MKLP=Date.now();const t=DMB.t.splice(hit,1)[0];$('#dmBtn').textContent='완료 ('+DMB.t.length+'글자)';toast('글자를 뺐습니다 ('+DMB.t.length+'글자)',1200);renderPage(t.p);return}}
+  {const hit=DMB.t.findIndex(t=>t.p===i&&pt[0]>=t.r[0]-.003&&pt[0]<=t.r[0]+t.r[2]+.003&&pt[1]>=t.r[1]-.003&&pt[1]<=t.r[1]+t.r[3]+.003);if(hit>=0){MKLP=Date.now();const t=DMB.t.splice(hit,1)[0];dmBtnEl().textContent='완료 ('+DMB.t.length+'글자)';toast('글자를 뺐습니다 ('+DMB.t.length+'글자)',1200);renderPage(t.p);return}}
   let w=wordAt(i,pt);if(!w){let bd=1e9;for(const x of wordsOf(i)){const d=Math.hypot(Math.max(x[0]-pt[0],0,pt[0]-x[0]-x[2]),Math.max(x[1]-pt[1],0,pt[1]-x[1]-x[3])*1.4);if(d<bd){bd=d;w=x}}if(bd>.03)w=null}
   if(!w){toast(wordsOf(i).length?'여기서 글자를 찾지 못했습니다. 글자 바로 위를 눌러 주세요':'이 쪽 글자 위치를 불러오지 못했습니다',2500);return}const k=cIdx(w,pt[0]);dmAddLetter(i,lineRects([clipW(w,k,k+1)])[0])}
 function dmAddLetter(i,r){MKLP=Date.now();const dup=DMB.t.findIndex(t=>t.p===i&&Math.abs(t.r[0]-r[0])<.004&&Math.abs(t.r[1]-r[1])<.004);
   if(dup>=0){DMB.t.splice(dup,1)}else DMB.t.push({p:i,r});try{navigator.vibrate&&navigator.vibrate(10)}catch(e){}
-  $('#dmBtn').textContent='완료 ('+DMB.t.length+'글자)';toast(dup>=0?'글자를 뺐습니다 ('+DMB.t.length+'글자)':DMB.t.length+'번째 글자를 골랐습니다',1200);renderPage(i)}
+  dmBtnEl().textContent='완료 ('+DMB.t.length+'글자)';toast(dup>=0?'글자를 뺐습니다 ('+DMB.t.length+'글자)':DMB.t.length+'번째 글자를 골랐습니다',1200);renderPage(i)}
 function dmFinish(){const B=DMB;DMB=null;if(!B)return;if(B.edit){dmSaveEdit(B);return}if(!B.t.length)return;const pages=[...new Set(B.t.map(t=>t.p))];
   if(B.t.length<2){toast('두문자는 두 글자 이상이어야 합니다. 만들지 않았습니다');pages.forEach(renderPage);return}
   const f=B.t[0];const hs=heads().filter(h=>h.w&&(h.p<f.p||(h.p===f.p&&h.y<=f.r[1]+.002)));
   const cy=f.r[1]+f.r[3]/2;const hf=heads().find(h=>h.p===f.p&&h.w&&cy>=h.y-.004&&cy<=h.y+h.h+.004);
   const cands=hf?hs.filter(h=>h.id!==hf.id&&h.lv<hf.lv):hs;const cue=(cands.length?cands:hs).slice(-1)[0];
-  const rr=roundOf(f.p);const d={id:'d-'+uid(),mine:1,rk:rr?rr.key:null,lp:rr?f.p-rr.start:f.p,p:f.p,t:B.t.map(t=>({lp:rr?t.p-rr.start:t.p,p:t.p,r:t.r})),ans:[],cue:cue?cue.id:null,t0:Date.now()};
+  const rr=roundOf(f.p);const d={id:'d-'+uid(),mine:1,rk:rr?rr.key:null,lp:rr?f.p-rr.start:f.p,p:f.p,t:B.t.map(t=>({lp:rr?t.p-rr.start:t.p,p:t.p,r:t.r})),ans:[],cue:cue?cue.id:null,t0:Date.now(),...(B.own?{own:1}:{})};
   U.add.dumunja.push(d);MKU.push({dmAdd:d.id});saveU();pages.forEach(renderPage);updateSub();
-  toast('두문자 '+B.t.length+'글자를 만들었습니다'+(cue?' (주제: '+cue.t.slice(0,20)+')':''),3500)}
+  toast((B.own?'내 두문자 ':'두문자 ')+B.t.length+'글자를 만들었습니다'+(cue?' (주제: '+cue.t.slice(0,20)+')':''),3500)}
 
 /* ---------- 쪽지시험 ---------- */
 let BQ=0;
@@ -1488,7 +1496,7 @@ function setMode(m){sel=null;tool=null;
   if(typeof applyMenu==='function')setTimeout(applyMenu,0);renderAll();renderTree();updateSub()}
 $$('[data-mode]').forEach(b=>b.addEventListener('click',()=>setMode(b.dataset.mode)));
 function updateSub(){
-  $('#penUndo').hidden=!(has('pen')||MKB);$('#dmBtn').hidden=false;$('#reHide').hidden=!has('blank');$('#coreTg').hidden=!has('blank');for(const [id,mine,nm] of [['#coreTg',false,'핵심'],['#reHide',true,'빈칸']]){const L=visKind(mine);$(id).textContent=nm+(L.length&&!L.some(b=>!opened.has(b.id))?' 전체 닫기':' 전체 열기')}
+  $('#penUndo').hidden=!(has('pen')||MKB);dmBtnSync();$('#reHide').hidden=!has('blank');$('#coreTg').hidden=!has('blank');for(const [id,mine,nm] of [['#coreTg',false,'핵심'],['#reHide',true,'빈칸']]){const L=visKind(mine);$(id).textContent=nm+(L.length&&!L.some(b=>!opened.has(b.id))?' 전체 닫기':' 전체 열기')}
   const s=$('#sub');s.textContent='';
   const sec=(t)=>{if(s.children.length)s.append(el('span',{style:'width:1px;height:18px;background:var(--line);margin:0 4px'}));s.append(el('b',{style:'font-size:12px;color:var(--ink)'},t))};
   const vis=visiblePages();

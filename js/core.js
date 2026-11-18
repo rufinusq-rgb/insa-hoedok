@@ -228,9 +228,10 @@ const Sync = {
   // 지켜보는 개수: 빈칸(내+핵심), 내가 만든 두문자, 메모
   counts(docs){ const m = docs['data/users/me/r01']; const a = (m && m.v && m.v.add) || {};
     let memo = 0; for(const [k, rec] of Object.entries(docs)) if(/\/notes\/p\d+$/.test(k) && rec && rec.v && Array.isArray(rec.v.memos)) memo += rec.v.memos.length;
-    return {b: Sync.count(docs), d: (a.dumunja || []).filter(x => x.mine).length, m: memo}; },
-  // 크게 줄었는지: 빈칸은 10개 넘게, 두문자·메모는 3개 넘게 줄고 90% 아래로 떨어지면
-  shrunk(prev, now){ const L = [['b','빈칸',10],['d','두문자',3],['m','메모',3]]; const out = [];
+    const dm = (a.dumunja || []).filter(x => x.mine);
+    return {b: Sync.count(docs), d: dm.length, d1: dm.filter(x => !x.own).length, d2: dm.filter(x => x.own).length, m: memo}; },
+  // 크게 줄었는지: 빈칸은 10개 넘게, 두문자(전체·강사·내 것 따로)·메모는 3개 넘게 줄고 90% 아래로 떨어지면
+  shrunk(prev, now){ const L = [['b','빈칸',10],['d','두문자',3],['d1','강사 두문자',3],['d2','내 두문자',3],['m','메모',3]]; const out = [];
     for(const [k, nm, lim] of L){ const p = prev && prev[k]; if(typeof p === 'number' && p - now[k] > lim && now[k] < p * 0.9) out.push({nm, prev: p, now: now[k]}); }
     return out; },
   async push(opt={}){
