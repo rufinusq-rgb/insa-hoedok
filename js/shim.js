@@ -150,7 +150,7 @@ const assets = {
     await Local.blob.put(id, blob);
     const c = await caches.open(CFG.CONTENT_CACHE);
     await c.put(BASE + '_blob/' + id, new Response(blob, {headers:{'Content-Type': (opt && opt.type) || blob.type || 'image/jpeg'}}));
-    if(Drive.token()) Drive.saveBlob('이미지_' + id + '.jpg', blob, 'image/jpeg').catch(e => console.warn('img upload', e));
+    // 드라이브 보관은 바꾸기가 끝난 뒤 app.html syncImgs → INSA.Images.sync 가 한꺼번에 한다(중복 파일 방지).
     return {id};
   }
 };

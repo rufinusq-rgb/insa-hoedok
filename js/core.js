@@ -179,11 +179,18 @@ const Drive = {
     const j = await (await Drive.api('/drive/v3/files?q=' + q + '&fields=files(id,name,size,modifiedTime)&orderBy=modifiedTime desc')).json();
     return (j.files && j.files[0]) || null;
   },
-  async list(){
+  // 폴더의 파일 목록. 기록 보관본이 쌓여 1000개를 넘어도 다 읽는다(다음 쪽 이어 읽기). nameStart를 주면 그 글자로 시작하는 것만.
+  async list(nameStart){
     const p = await Drive.folder();
-    const q = encodeURIComponent("'" + p + "' in parents and trashed=false");
-    const j = await (await Drive.api('/drive/v3/files?q=' + q + '&fields=files(id,name,size,modifiedTime)&orderBy=name&pageSize=1000')).json();
-    return j.files || [];
+    let qs = "'" + p + "' in parents and trashed=false";
+    if(nameStart) qs += " and name contains '" + nameStart.replace(/'/g, "\\'") + "'";
+    const q = encodeURIComponent(qs); const out = []; let tok = '';
+    for(let k = 0; k < 50; k++){
+      const j = await (await Drive.api('/drive/v3/files?q=' + q + '&fields=nextPageToken,files(id,name,size,modifiedTime)&orderBy=name&pageSize=1000' + (tok ? '&pageToken=' + encodeURIComponent(tok) : ''))).json();
+      out.push(...(j.files || []));
+      if(!j.nextPageToken) break; tok = j.nextPageToken;
+    }
+    return nameStart ? out.filter(f => f.name.startsWith(nameStart)) : out;
   },
   // 작은 파일(기록 JSON): 있으면 내용 교체, 없으면 새로 만든다
   async saveText(name, text, mime='application/json'){
@@ -303,6 +310,36 @@ const Sync = {
   }
 };
 
-window.INSA = {CFG, Local, Content, Drive, Sync, stamp, lastWrite, mergeNote};
+/* ---------- 바꿔 넣은 교재 쪽 그림 ↔ 드라이브 ----------
+   「페이지 이미지 교체」로 넣은 그림은 기기(IndexedDB blobs + 콘텐츠 캐시)에 있고, 드라이브에는 「이미지_<id>.jpg」로 보관한다.
+   ids = 기록(U.pageImg)에 적힌 그림 id들. 기기에만 있으면 올리고, 드라이브에만 있으면 받아 온다. 아무것도 지우지 않는다. */
+const Images = {
+  name: id => '이미지_' + id + '.jpg',
+  async putLocal(id, blob){
+    const b = new Blob([blob], {type:'image/jpeg'});
+    await Local.blob.put(id, b);
+    const c = await caches.open(CFG.CONTENT_CACHE);
+    await c.put(BASE + '_blob/' + id, new Response(b, {headers:{'Content-Type':'image/jpeg'}}));
+  },
+  async sync(ids, onProg){
+    ids = [...new Set((ids || []).filter(x => typeof x === 'string' && x))];
+    const r = {up:0, down:0, miss:0, fail:0, got:[]};
+    if(!ids.length || !Drive.token()) return r;
+    const files = await Drive.list('이미지_'); const by = new Map(files.map(f => [f.name, f]));
+    let k = 0;
+    for(const id of ids){
+      k++; if(onProg) onProg(k, ids.length);
+      const f = by.get(Images.name(id)); const b = await Local.blob.get(id);
+      try{
+        if(b && !f){ await Drive.saveBlob(Images.name(id), b, 'image/jpeg'); r.up++; }
+        else if(!b && f){ await Images.putLocal(id, await Drive.readBlob(f.id)); r.down++; r.got.push(id); }
+        else if(!b && !f) r.miss++;
+      }catch(e){ console.warn('image sync', id, e); r.fail++; if(e && e.code === 'auth') break; }
+    }
+    return r;
+  }
+};
+
+window.INSA = {CFG, Local, Content, Drive, Sync, Images, stamp, lastWrite, mergeNote};
 window.INSA_ROUNDS = CFG.ROUNDS.map(r => r.key);
 })();

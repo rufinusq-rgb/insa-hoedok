@@ -531,7 +531,11 @@ function fixAdds(){let ch=false;for(const list of Object.values(U.add||{}))for(c
 function patch(k,id,obj){const isAdd=(U.add[k]||[]).find(a=>a.id===id);if(isAdd)Object.assign(isAdd,obj);else U.ov[k][id]={...(U.ov[k][id]||{}),...obj};saveU()}
 function remove(k,id){if((k==='blanks'&&/^[mc]-/.test(String(id)))||(k==='dumunja'&&/^d-/.test(String(id)))){U.mineDel=U.mineDel||[];if(!U.mineDel.includes(id))U.mineDel.push(id)}const i=(U.add[k]||[]).findIndex(a=>a.id===id);if(i>=0)U.add[k].splice(i,1);else U.ov[k][id]={...(U.ov[k][id]||{}),del:true};saveU()}
 function heads(){return items('heads').slice().sort((a,b)=>a.p-b.p||a.y-b.y)}
-function pageSrc(i){const id=U.pageImg[sk(i)];return id?('_blob/'+id):D.pages[i].src}
+function pageSrc(i){const id=U.pageImg[sk(i)];return id&&!NOIMG.has(i)?('_blob/'+id):D.pages[i].src}
+/* 바꿔 넣은 그림이 이 기기에 없으면(다른 기기에서 바꿨는데 아직 못 받음 등) 원래 그림을 보여 주고, 그 쪽은 목차 띠도 그린다. */
+const NOIMG=new Set();
+function repShown(i){return !!U.pageImg[sk(i)]&&!NOIMG.has(i)}
+function refreshImgs(only){PG.forEach((P,i)=>{if(!P)return;if(only&&!only.has(i))return;const was=NOIMG.delete(i);const src=pageSrc(i);if(P.img.getAttribute('src')!==src){P.img.src=src;renderPage(i)}else if(was)renderPage(i)})}
 function pageLabel(i){const l=D.pages[i].label;return /^\d/.test(l)?l+'쪽':l}
 function sectionAt(p,y){let cur=null;for(const h of heads()){if(h.p<p||(h.p===p&&h.y<=y+0.005))cur=h;else break}return cur}
 
@@ -539,10 +543,10 @@ function sectionAt(p,y){let cur=null;for(const h of heads()){if(h.p<p||(h.p===p&
 const PG=[]; let baseW=860;
 function pageWidth(){return Math.round(baseW*U.zoom)}
 function buildPages(){
-  const wrap=$('#pages');wrap.textContent='';PG.length=0;let sp=null;
+  const wrap=$('#pages');wrap.textContent='';PG.length=0;NOIMG.clear();let sp=null;
   D.pages.forEach(pg=>{
     const img=el('img',{alt:pageLabel(pg.i)+' 원본',loading:pg.i<3?'eager':'lazy',decoding:'async',src:pageSrc(pg.i)});
-    img.addEventListener('error',()=>{if(U.pageImg[sk(pg.i)]){img.src=pg.src}});
+    img.addEventListener('error',()=>{if(U.pageImg[sk(pg.i)]&&!NOIMG.has(pg.i)){NOIMG.add(pg.i);img.src=pg.src;renderPage(pg.i)}});
     const ov=el('div',{class:'ov'});
     const box=el('div',{class:'page',id:'pg'+pg.i,'data-i':pg.i},el('span',{class:'lbl'},pageLabel(pg.i)),img,ov);
     if(!twoUp()||pg.i===0||pg.i%2===1){sp=el('div',{class:'spread'});wrap.append(sp)}
@@ -578,8 +582,8 @@ function renderPage(i){
     
     if(R){ov.append(rvBox('heads',h,hb,0,(h.lv>=3?'띠 '+(h.lv-2):'띠 없음')+' · '+h.t.slice(0,14)));continue}
     if(has('recall')&&h.lv>=4&&!trivialHead(h)&&!recallShown.has(h.id)){const bc=BANDC[Math.min(3,h.lv-3)];ov.append(boxEl(hb,'hc',{style:`left:${pct(hb[0])};top:${pct(hb[1])};width:${pct(Math.max(hb[2],.12))};height:${pct(hb[3])};box-shadow:inset 0 -4px 0 ${bc},inset 0 0 0 1.5px #4fb06c`,title:'눌러서 확인',onclick:()=>{recallShown.add(h.id);for(const b of blanksInHead(h))opened.add(b.id);renderPage(i);renderTree();updateSub()}}));continue}
-    if(U.band&&h.lv>=3&&!U.pageImg[sk(i)])ov.append(boxEl(hb,'band lv'+Math.min(4,h.lv-2)));
-    if(U.band&&h.lv>=3&&!U.pageImg[sk(i)]&&h.r2)for(const r of h.r2)ov.append(boxEl([r[0]-.0015,r[1]-.001,r[2]+.003,r[3]+.002],'band lv'+Math.min(4,h.lv-2)));   /* 두 줄 제목의 둘째 줄 */   /* 교체한 쪽은 PDF에 목차 형광펜이 이미 칠해져 있어 겹쳐 그리지 않는다 */
+    if(U.band&&h.lv>=3&&!repShown(i))ov.append(boxEl(hb,'band lv'+Math.min(4,h.lv-2)));
+    if(U.band&&h.lv>=3&&!repShown(i)&&h.r2)for(const r of h.r2)ov.append(boxEl([r[0]-.0015,r[1]-.001,r[2]+.003,r[3]+.002],'band lv'+Math.min(4,h.lv-2)));   /* 두 줄 제목의 둘째 줄 */   /* 교체한 쪽은 PDF에 목차 형광펜이 이미 칠해져 있어 겹쳐 그리지 않는다 */
     if(has('recall')&&recallable(h)&&recallShown.has(h.id))ov.append(boxEl(hb,'',{style:`left:${pct(hb[0])};top:${pct(hb[1])};width:${pct(hb[2])};height:${pct(hb[3])};cursor:pointer;z-index:2`,title:'다시 가리기',onclick:ev=>{ev.stopPropagation();recallShown.delete(h.id);for(const b of blanksInHead(h))opened.delete(b.id);renderPage(i);renderTree();updateSub()}}));
   }
   // 판례 표시 (쟁점·사실·결론)
@@ -1673,11 +1677,28 @@ async function replacePages(file,startI,log){
     await pg.render({canvasContext:c.getContext('2d'),viewport:vp}).promise;
     try{await drawZeroDots(pg,vp,c.getContext('2d'))}catch(e){console.warn('dots',e)}
     const blob=await new Promise(r=>c.toBlob(r,'image/jpeg',.8));
-    try{const up=await assets.upload(blob,{type:'image/jpeg'});U.pageImg[sk(i)]=up.id;saveU();PG[i].img.src=pageSrc(i);say(pageLabel(i)+' 교체')}
+    try{const up=await assets.upload(blob,{type:'image/jpeg'});U.pageImg[sk(i)]=up.id;saveU();NOIMG.delete(i);PG[i].img.src=pageSrc(i);renderPage(i);say(pageLabel(i)+' 교체')}
     catch(e){say(pageLabel(i)+': 올리지 못했습니다 ('+(e.code||e.message||e)+')');if(e&&e.code==='quota_exceeded')break}
   }
   say('끝났습니다.');
+  await syncImgs(say);
 }
+/* 바꿔 넣은 그림을 드라이브에 보관하고, 다른 기기에서 바꾼 그림은 받아 온다(드라이브 연결돼 있을 때만). */
+let IMGSYNC=null,IMGSYNC_T=0;
+async function syncImgs(say){
+  const I=window.INSA;if(!I||!I.Images)return;
+  const ids=Object.values(U.pageImg||{});if(!ids.length)return;
+  if(!I.Drive.token()){if(say)say('드라이브가 연결돼 있지 않아 바꾼 그림을 아직 드라이브에 보관하지 못했습니다. 연결되면 자동으로 보관합니다.');return}
+  if(IMGSYNC)return IMGSYNC;
+  IMGSYNC=(async()=>{try{
+    if(say)say('바꾼 그림을 드라이브에 보관하는 중…');
+    const r=await I.Images.sync(ids);IMGSYNC_T=Date.now();
+    if(r.got.length){const got=new Set(r.got);const ps=new Set();D.pages.forEach(pg=>{if(got.has(U.pageImg[sk(pg.i)]))ps.add(pg.i)});refreshImgs(ps)}
+    if(say)say('드라이브 보관: 새로 올림 '+r.up+'쪽'+(r.fail?' · 실패 '+r.fail+'쪽(다음에 다시 시도)':''));
+    else if(r.down)toast('다른 기기에서 바꾼 교재 그림 '+r.down+'쪽을 받아 왔습니다');
+  }catch(e){console.warn('syncImgs',e);if(say)say('드라이브 보관 실패: '+(e.message||e)+' (다음에 다시 시도)')}
+  finally{IMGSYNC=null}})();
+  return IMGSYNC}
 
 $('#goForm').addEventListener('submit',e=>{e.preventDefault();const n=parseInt($('#goPage').value,10);if(!n){toast('쪽 번호를 숫자로 넣어 주세요');return}
   const i=D.pages.findIndex(p=>parseInt(p.label,10)===n);
@@ -1746,15 +1767,17 @@ function applyU(){applyMenu();applyEye();$('#bandBtn').setAttribute('aria-presse
   try{migrateOrder(!!u)}catch(e){console.error('migrateOrder',e)}
   const safe=(f,name)=>{try{return f()}catch(e){console.error(name,e);toast('화면 일부를 그리다 오류가 났습니다('+name+'). 기록은 그대로 있습니다.',6000)}};
   safe(applyU,'applyU');
+  safe(()=>refreshImgs(),'pageImg');setTimeout(()=>syncImgs(),3000);
   safe(fixAdds,'fixAdds');try{if(!Store.blocked){await restoreMine();if((U.add.blanks||[]).some(b=>b.mine))saveU()}}catch(e){console.error('restore',e)}ON.delete('recall');
   for(const m of ['blank','quiz','pen'])safe(()=>{if(!ON.has(m))setMode(m)},'mode-'+m);
   U.menu=false;U.side=true;safe(applyMenu,'menu');safe(()=>applyLayout(true),'layout');
   if(Store.mode!=='db')toast('기록이 이 브라우저에만 저장됩니다. 더보기 → 백업 내보내기를 자주 해 주세요.',5000);
+  document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&Date.now()-IMGSYNC_T>600000)setTimeout(()=>syncImgs(),5000)});
   document.addEventListener('visibilitychange',async()=>{
     if(document.visibilityState!=='visible'||Store.mode!=='db'||('main' in Store.q)||Store.busy.main)return;
     const u2=await Store.get('main');if(!u2)return;
     if(JSON.stringify(u2.add)===JSON.stringify(U.add)&&JSON.stringify(u2.res)===JSON.stringify(U.res))return;
-    const keep={menu:U.menu,side:U.side,zoom:U.zoom};const oldMine=mineSnap();U=normU(u2);Object.assign(U,keep);Store.blocked=false;fixAdds();if(mergeMine(oldMine))saveU();renderAll();updateSub()});
+    const keep={menu:U.menu,side:U.side,zoom:U.zoom};const oldMine=mineSnap();U=normU(u2);Object.assign(U,keep);Store.blocked=false;fixAdds();if(mergeMine(oldMine))saveU();refreshImgs();renderAll();updateSub();syncImgs()});
 })();
 </script>
 
